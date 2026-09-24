@@ -1,0 +1,32 @@
+# SecMate configuration
+# NOTE: This is a demo/simulation prototype. Values here describe the
+# ACTUAL current state of the app. Nothing in this file should be read
+# as "production-ready" — see README.md for full limitations.
+
+app_name: "SecMate"
+execution_mode: "Simulation / Demo"
+storage_type: "SQLite (local file: data/secmate.db)"
+authentication_mode: "Demo login (session-based, no real credential verification, no password storage)"
+
+default_target: "NovaMind AI"
+default_workflow: "Combined Security Assessment"
+default_intensity: "Standard"
+
+workflows:
+  - name: "Red Team-Blue Team Assessment"
+    description: "Generates adversarial prompts and evaluates simulated target responses using rule-based scoring."
+  - name: "VAPT Security Analysis"
+    description: "Runs rule-based pattern analysis against user-supplied evidence/context text."
+  - name: "Combined Security Assessment"
+    description: "Runs Red Team + Blue Team, then VAPT analysis on the resulting evidence, combined into one record."
+
+intensity_levels:
+  Basic:
+    categories: 3
+    prompts_per_category: 1
+  Standard:
+    categories: 5
+    prompts_per_category: 2
+  Advanced:
+    categories: 6
+    prompts_per_category: 4
