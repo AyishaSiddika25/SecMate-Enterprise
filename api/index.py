@@ -1,149 +1,124 @@
-import json
-import sys
-import os
-from http.server import BaseHTTPRequestHandler
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SecMate Enterprise</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-# Add repository root to Python path
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
 
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+        h1 {
+            margin-bottom: 5px;
+        }
 
-try:
-    from core import engine
-except Exception as e:
-    engine = None
-    IMPORT_ERROR = str(e)
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
 
+        input, select, textarea, button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
 
-class handler(BaseHTTPRequestHandler):
+        button {
+            cursor: pointer;
+            font-weight: bold;
+        }
 
-    def send_json(self, status_code, data):
-        body = json.dumps(data, default=str).encode("utf-8")
+        pre {
+            background: #111;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
 
-        self.send_response(status_code)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.end_headers()
+<body>
 
-        self.wfile.write(body)
+<div class="card">
 
-    def do_OPTIONS(self):
-        self.send_json(200, {"ok": True})
+    <h1>🛡️ SecMate Enterprise</h1>
+    <p>AI-Assisted Security Assessment Platform</p>
 
-    def do_GET(self):
-        if engine is None:
-            self.send_json(
-                500,
-                {
-                    "application": "SecMate Enterprise",
-                    "status": "error",
-                    "message": "Engine import failed",
-                    "error": IMPORT_ERROR,
-                },
-            )
-            return
+    <label>Target</label>
+    <input id="target" value="demo-app">
 
-        self.send_json(
-            200,
-            {
-                "application": "SecMate Enterprise",
-                "status": "online",
-                "mode": "API",
-                "engine": "loaded",
-                "message": "SecMate API is running",
+    <label>Workflow</label>
+    <select id="workflow">
+        <option>VAPT Security Analysis</option>
+        <option>Red Team-Blue Team Assessment</option>
+        <option>Combined Security Assessment</option>
+    </select>
+
+    <label>Intensity</label>
+    <select id="intensity">
+        <option>Basic</option>
+        <option>Standard</option>
+        <option>Advanced</option>
+    </select>
+
+    <label>Evidence / Context</label>
+    <textarea id="evidence" rows="5">Example application contains a possible SQL injection input and weak authentication configuration.</textarea>
+
+    <button onclick="runAssessment()">Run Assessment</button>
+
+    <h3>Result</h3>
+    <pre id="result">Waiting for assessment...</pre>
+
+</div>
+
+<script>
+async function runAssessment() {
+
+    const result = document.getElementById("result");
+
+    result.textContent = "Running assessment...";
+
+    const data = {
+        target: document.getElementById("target").value,
+        workflow: document.getElementById("workflow").value,
+        intensity: document.getElementById("intensity").value,
+        evidence: document.getElementById("evidence").value
+    };
+
+    try {
+
+        const response = await fetch("/api", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
             },
-        )
+            body: JSON.stringify(data)
+        });
 
-    def do_POST(self):
-        if engine is None:
-            self.send_json(
-                500,
-                {
-                    "ok": False,
-                    "error": "Engine import failed",
-                    "details": IMPORT_ERROR,
-                },
-            )
-            return
+        const output = await response.json();
 
-        try:
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length)
+        result.textContent = JSON.stringify(output, null, 2);
 
-            data = json.loads(body.decode("utf-8"))
+    } catch (error) {
 
-            target = str(data.get("target", "")).strip()
-            workflow = str(data.get("workflow", "")).strip()
-            intensity = str(data.get("intensity", "Standard")).strip()
-            evidence = str(data.get("evidence", "") or "")
+        result.textContent = "Error: " + error.message;
 
-            if not target:
-                self.send_json(
-                    400,
-                    {
-                        "ok": False,
-                        "error": "Target is required",
-                    },
-                )
-                return
+    }
+}
+</script>
 
-            if not workflow:
-                self.send_json(
-                    400,
-                    {
-                        "ok": False,
-                        "error": "Workflow is required",
-                        "available_workflows": engine.ALL_WORKFLOWS,
-                    },
-                )
-                return
-
-            if workflow not in engine.ALL_WORKFLOWS:
-                self.send_json(
-                    400,
-                    {
-                        "ok": False,
-                        "error": f"Unknown workflow: {workflow}",
-                        "available_workflows": engine.ALL_WORKFLOWS,
-                    },
-                )
-                return
-
-            record = engine.run_assessment(
-                target=target,
-                workflow=workflow,
-                intensity=intensity,
-                evidence=evidence,
-            )
-
-            self.send_json(
-                200,
-                {
-                    "ok": True,
-                    "application": "SecMate Enterprise",
-                    "assessment": record,
-                },
-            )
-
-        except json.JSONDecodeError:
-            self.send_json(
-                400,
-                {
-                    "ok": False,
-                    "error": "Invalid JSON request body",
-                },
-            )
-
-        except Exception as e:
-            self.send_json(
-                500,
-                {
-                    "ok": False,
-                    "error": "Assessment execution failed",
-                    "details": str(e),
-                },
-            )
+</body>
+</html>
