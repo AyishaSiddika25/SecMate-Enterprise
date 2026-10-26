@@ -611,7 +611,31 @@
         .integration-settings .wide { grid-column: 1 / -1; }
         .integration-settings[hidden] { display: none; }
         .result-title { margin: 24px 0 10px; color: var(--text); font-size: var(--font-section-title); }
-        #result { min-height: 150px; margin: 0; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #06101b; color: #b4daf0; font: var(--font-label)/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+        #result { min-height: 150px; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #071522; color: var(--text-secondary); }
+        .agent-state { display: grid; min-height: 150px; padding: 24px; place-items: center; color: var(--text-secondary); font-size: var(--font-body); line-height: var(--leading-body); text-align: center; }
+        .agent-state.error { color: var(--critical); }
+        .agent-summary-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--line); background: linear-gradient(110deg, rgba(35, 116, 178, .18), rgba(8, 27, 43, .3)); }
+        .agent-summary-head h3 { margin: 5px 0 0; color: var(--text); font-size: var(--font-section-title); line-height: 1.35; }
+        .agent-kicker { color: var(--success); font-size: var(--font-caption); font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+        .agent-lead { margin: 0; padding: 16px 20px 0; color: var(--text-secondary); font-size: var(--font-body); line-height: 1.65; }
+        .agent-meta-grid, .agent-stat-grid { display: grid; gap: 10px; padding: 16px 20px 0; }
+        .agent-meta-grid, .agent-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .agent-meta, .agent-stat { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: rgba(17, 43, 65, .58); }
+        .agent-meta span, .agent-stat span { display: block; color: var(--muted); font-size: var(--font-caption); font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+        .agent-meta b, .agent-stat b { display: block; margin-top: 6px; overflow-wrap: anywhere; color: var(--text); font-size: var(--font-label); line-height: 1.45; }
+        .agent-stat b { color: #bfe5ff; font-size: 1.12rem; }
+        .agent-sections { display: grid; gap: 10px; padding: 16px 20px 20px; }
+        .agent-section { overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: rgba(7, 21, 34, .68); }
+        .agent-section summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; color: var(--text); font-size: var(--font-label); font-weight: 750; cursor: pointer; list-style: none; }
+        .agent-section summary::-webkit-details-marker { display: none; }
+        .agent-section summary::after { content: "+"; color: var(--cyan); font-size: 1.15rem; }
+        .agent-section[open] summary::after { content: "−"; }
+        .agent-section-body { border-top: 1px solid var(--line); }
+        .agent-result-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; padding: 13px 15px; border-bottom: 1px solid rgba(51, 91, 122, .42); }
+        .agent-result-row:last-child { border-bottom: 0; }
+        .agent-result-row strong { color: var(--text); font-size: var(--font-label); line-height: 1.45; }
+        .agent-result-row p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-meta); line-height: 1.55; }
+        .agent-empty-row { padding: 15px; color: var(--muted); font-size: var(--font-label); line-height: 1.55; }
 
         .filter-bar { display: flex; gap: 9px; margin-bottom: 13px; }
         .filter-bar input, .filter-bar select { width: auto; height: 40px; padding: 0 10px; font-size: var(--font-label); }
@@ -685,6 +709,7 @@
             .metric-grid { grid-template-columns: repeat(2, 1fr); }
             .dashboard-grid { grid-template-columns: 1fr; }
             .stepper { grid-template-columns: repeat(3, 1fr); }
+            .agent-meta-grid, .agent-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
         @media (max-width: 900px) {
@@ -741,6 +766,7 @@
             .filter-bar input, .filter-bar select { width: 100%; }
             .finding-detail-grid { grid-template-columns: 1fr; }
             .comparison-controls, .presentation-grid, .presentation-summary { grid-template-columns: 1fr; }
+            .agent-meta-grid, .agent-stat-grid { grid-template-columns: 1fr; }
             .presentation-overlay { align-items: start; overflow-y: auto; padding: 18px; }
         }
 
@@ -969,7 +995,7 @@
                             <div class="wide"><label for="evidence">Evidence / Context</label><textarea id="evidence" name="evidence" maxlength="50000">Example application contains a possible SQL injection input and weak authentication configuration.</textarea></div>
                             <div class="wide"><button id="submit" class="primary-btn assessment-submit" type="submit">Run Assessment</button></div>
                         </form>
-                        <h2 class="result-title">Agent output</h2><pre id="result" aria-live="polite">Waiting for assessment…</pre>
+                        <h2 class="result-title">Assessment result</h2><div id="result" aria-live="polite"><div class="agent-state">Waiting for an assessment to run.</div></div>
                     </article>
                 </section>
 
@@ -1240,6 +1266,78 @@ function gateClass(gate) {
     return ["pass", "review", "fail"].includes(value) ? value : "review";
 }
 
+function verdictClass(verdict) {
+    const value = String(verdict || "").toLowerCase();
+    if (value.includes("defended") || value.includes("pass") || value.includes("secure")) return "pass";
+    if (value.includes("critical") || value.includes("bypass") || value.includes("fail")) return "fail";
+    return "review";
+}
+
+function renderAgentState(message, type = "") {
+    result.innerHTML = `<div class="agent-state ${type === "error" ? "error" : ""}">${escapeHtml(message)}</div>`;
+}
+
+function renderAgentOutput(record) {
+    const testCases = asList(record.test_cases);
+    const findings = getDisplayFindings(record);
+    const progress = asList(record.progress);
+    const posture = record.posture || {};
+    const assessmentType = record.assessment_type || record.workflow || "Security assessment";
+    const verdict = record.overall_verdict || "Requires Review";
+    const gate = posture.gate || verdict;
+    const testCount = record.test_case_count ?? testCases.length;
+    const defendedCount = record.defended_count ?? testCases.filter((item) => item.verdict === "Defended").length;
+    const reviewCount = record.review_required_count ?? testCases.filter((item) => item.verdict !== "Defended").length;
+    const postureText = Number.isFinite(posture.score) ? `${posture.score} / 100` : "Not calculated";
+    const summary = posture.rationale || (
+        findings.length
+            ? `The assessment identified ${findings.length} security finding${findings.length === 1 ? "" : "s"} that should be reviewed.`
+            : "The assessment completed without producing an evidence-backed security finding."
+    );
+
+    const testRows = testCases.length ? testCases.map((testCase) => `
+        <div class="agent-result-row">
+            <div><strong>${escapeHtml(testCase.category || "Security test")}</strong><p>${escapeHtml(testCase.explanation || "The test was evaluated without an additional explanation.")}</p></div>
+            <span class="gate-chip ${verdictClass(testCase.verdict)}">${escapeHtml(testCase.verdict || "Review")}</span>
+        </div>`).join("") : '<div class="agent-empty-row">No adversarial test cases were produced for this workflow.</div>';
+
+    const findingRows = findings.length ? findings.map((finding) => `
+        <div class="agent-result-row">
+            <div><strong>${escapeHtml(finding.title || "Security finding")}</strong><p>${escapeHtml(finding.description || finding.recommendation || "Analyst review is recommended.")}</p></div>
+            <span class="severity ${escapeHtml(String(finding.severity || "Info").toLowerCase())}">${escapeHtml(finding.severity || "Info")}</span>
+        </div>`).join("") : '<div class="agent-empty-row">No evidence-backed findings were generated.</div>';
+
+    const progressRows = progress.length ? progress.map((step) => `
+        <div class="agent-result-row">
+            <div><strong>${escapeHtml(String(step.stage || "Assessment stage").replaceAll("_", " "))}</strong><p>${escapeHtml(step.detail || "Stage completed.")}</p></div>
+            <span class="gate-chip ${step.status === "Completed" ? "pass" : "review"}">${escapeHtml(step.status || "Recorded")}</span>
+        </div>`).join("") : '<div class="agent-empty-row">No stage details were returned.</div>';
+
+    result.innerHTML = `
+        <div class="agent-summary-head">
+            <div><span class="agent-kicker">Assessment completed</span><h3>${escapeHtml(record.assessment_id || "SecMate assessment")}</h3></div>
+            <span class="gate-chip ${verdictClass(gate)}">${escapeHtml(posture.gate || verdict)}</span>
+        </div>
+        <p class="agent-lead">${escapeHtml(summary)}</p>
+        <div class="agent-meta-grid">
+            <div class="agent-meta"><span>Target</span><b>${escapeHtml(record.target || "Not recorded")}</b></div>
+            <div class="agent-meta"><span>Assessment</span><b>${escapeHtml(assessmentType)}</b></div>
+            <div class="agent-meta"><span>Intensity</span><b>${escapeHtml(record.intensity || "Standard")}</b></div>
+            <div class="agent-meta"><span>Overall verdict</span><b>${escapeHtml(verdict)}</b></div>
+        </div>
+        <div class="agent-stat-grid">
+            <div class="agent-stat"><span>Posture score</span><b>${escapeHtml(postureText)}</b></div>
+            <div class="agent-stat"><span>Security tests</span><b>${escapeHtml(testCount)}</b></div>
+            <div class="agent-stat"><span>Defended</span><b>${escapeHtml(defendedCount)}</b></div>
+            <div class="agent-stat"><span>Review needed</span><b>${escapeHtml(reviewCount)}</b></div>
+        </div>
+        <div class="agent-sections">
+            <details class="agent-section" open><summary>Security test results <span>${escapeHtml(testCases.length)}</span></summary><div class="agent-section-body">${testRows}</div></details>
+            <details class="agent-section" ${findings.length ? "open" : ""}><summary>Findings <span>${escapeHtml(findings.length)}</span></summary><div class="agent-section-body">${findingRows}</div></details>
+            <details class="agent-section"><summary>Assessment progress <span>${escapeHtml(progress.length)}</span></summary><div class="agent-section-body">${progressRows}</div></details>
+        </div>`;
+}
+
 function getDisplayFindings(record) {
     const rawFindings = asList(record.vapt_findings);
     const groups = asList(record.correlated_findings);
@@ -1344,9 +1442,11 @@ assessmentForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     submit.disabled = true;
     submit.textContent = "Running…";
-    result.textContent = deepteamEnabled.checked
-        ? "Running SecMate and DeepTeam assessment…"
-        : "Running SecMate assessment…";
+    renderAgentState(
+        deepteamEnabled.checked
+            ? "Running SecMate and DeepTeam assessment…"
+            : "Running SecMate assessment…"
+    );
 
     const payload = Object.fromEntries(new FormData(assessmentForm).entries());
     if (deepteamEnabled.checked) {
@@ -1372,12 +1472,12 @@ assessmentForm.addEventListener("submit", async (event) => {
         if (!contentType.includes("application/json")) throw new Error(`Server returned an invalid response (${response.status}).`);
         const output = await response.json();
         if (!response.ok || output.ok === false) throw new Error(output.error || `Request failed (${response.status})`);
-        result.textContent = JSON.stringify(output, null, 2);
+        renderAgentOutput(output);
         rememberAssessment(output);
         renderAssessmentIntelligence(output);
         showToast(`Assessment ${output.assessment_id} completed.`);
     } catch (error) {
-        result.textContent = `Error: ${error.message}`;
+        renderAgentState(`Assessment could not be completed: ${error.message}`, "error");
     } finally {
         submit.disabled = false;
         submit.textContent = "Run Assessment";

@@ -168,6 +168,14 @@ class TestIndexUi(unittest.TestCase):
         self.assertIn("Target API endpoint URL", INDEX_HTML)
         self.assertIn("payload.deepteam.target_endpoint", INDEX_HTML)
 
+    def test_agent_output_is_human_readable_instead_of_raw_json(self):
+        self.assertIn('<div id="result" aria-live="polite">', INDEX_HTML)
+        self.assertNotIn('<pre id="result"', INDEX_HTML)
+        self.assertIn("function renderAgentOutput(record)", INDEX_HTML)
+        self.assertIn("Security test results", INDEX_HTML)
+        self.assertIn("Assessment progress", INDEX_HTML)
+        self.assertNotIn("JSON.stringify(output, null, 2)", INDEX_HTML)
+
 
 if __name__ == "__main__":
     unittest.main()
