@@ -164,7 +164,7 @@ class TestIndexUi(unittest.TestCase):
         self.assertIn('action: "deepteam_status"', INDEX_HTML)
         self.assertIn('name="deepteamVulnerability"', INDEX_HTML)
         self.assertIn('name="deepteamAttack"', INDEX_HTML)
-        self.assertIn("Target name / assessment label", INDEX_HTML)
+        self.assertIn("Target endpoint / target URL", INDEX_HTML)
         self.assertIn("Target API endpoint URL", INDEX_HTML)
         self.assertIn("payload.deepteam.target_endpoint", INDEX_HTML)
 
