@@ -176,7 +176,8 @@ class TestIndexUi(unittest.TestCase):
         self.assertIn("Assessment progress", INDEX_HTML)
         self.assertIn('class="agent-loader"', INDEX_HTML)
         self.assertIn('"loading"', INDEX_HTML)
-        self.assertIn("agent-compact-grid", INDEX_HTML)
+        self.assertIn("agent-plain-summary", INDEX_HTML)
+        self.assertNotIn("agent-compact-grid", INDEX_HTML)
         self.assertNotIn('<details class="agent-section" open>', INDEX_HTML)
         self.assertNotIn("JSON.stringify(output, null, 2)", INDEX_HTML)
 
