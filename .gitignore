@@ -5,3 +5,13 @@ __pycache__/
 .streamlit/secrets.toml
 .env
 *.db
+.vercel/
+.vercel-global/
+.npm-cache/
+.vercel-ca.pem
+.integration-staging/
+.deepeval/
+.pytest_cache/
+.uv-cache/
+.uv-build-cache/
+output/

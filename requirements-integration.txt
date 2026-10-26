@@ -1,0 +1,4 @@
+-r requirements.txt
+deepteam @ git+https://github.com/Paramount-Assure/deepteam.git@2fd3445c5bb2070ce09834f66f1622eb914f6f46
+sentry-sdk>=2.0.0
+pytest>=8.3.0

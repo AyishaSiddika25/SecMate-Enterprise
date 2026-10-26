@@ -65,17 +65,27 @@ class TestVaptAnalyzer(unittest.TestCase):
         findings = security_analyzer.analyze_evidence('api_key = "sk_live_abcdef123456"')
         titles = [f["title"] for f in findings]
         self.assertIn("Hardcoded Credential Reference", titles)
+        finding = findings[0]
+        self.assertEqual(finding["rule_id"], "VAPT-CREDENTIAL-001")
+        self.assertEqual(finding["provenance"]["source_type"], "analyst_evidence")
+        self.assertEqual(finding["confidence"]["level"], "Medium")
+        self.assertGreater(finding["evidence_span"]["end"], finding["evidence_span"]["start"])
 
 
 class TestDatabase(unittest.TestCase):
     def setUp(self):
         # Redirect DB to a temp file for test isolation
         from core import database
-        self.tmpdir = tempfile.mkdtemp()
-        database.DB_DIR = self.tmpdir
-        database.DB_PATH = os.path.join(self.tmpdir, "test.db")
+        descriptor, self.db_path = tempfile.mkstemp(suffix=".db")
+        os.close(descriptor)
+        database.DB_DIR = os.path.dirname(self.db_path)
+        database.DB_PATH = self.db_path
         database.init_db()
         self.database = database
+
+    def tearDown(self):
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
 
     def test_save_and_retrieve(self):
         record = {
@@ -100,6 +110,17 @@ class TestDatabase(unittest.TestCase):
         fetched = self.database.get_assessment_by_id("SM-TEST0001")
         self.assertIsNotNone(fetched)
         self.assertEqual(fetched["target"], "TestTarget")
+
+    def test_intelligence_fields_are_persisted(self):
+        from core import engine
+        record = engine.run_assessment(
+            "TestTarget", engine.WORKFLOW_COMBINED, "Basic", evidence='password = "hunter2hunter2"'
+        )
+        self.database.save_assessment(record)
+        fetched = self.database.get_assessment_by_id(record["assessment_id"])
+        self.assertEqual(fetched["posture"]["gate"], record["posture"]["gate"])
+        self.assertEqual(fetched["outcome_matrix"], record["outcome_matrix"])
+        self.assertTrue(fetched["replay"]["sensitive_values_redacted"])
 
     def test_delete_only_removes_target_record(self):
         for i in range(2):
@@ -133,6 +154,34 @@ class TestEngine(unittest.TestCase):
         self.assertIn(record["overall_verdict"], [
             "Critical Risk", "High Risk", "Moderate Risk", "Low Risk", "No Significant Issues"
         ])
+        self.assertIn(record["posture"]["gate"], ["Pass", "Review", "Fail"])
+        self.assertGreater(len(record["outcome_matrix"]), 0)
+        self.assertTrue(record["correlated_findings"])
+        self.assertTrue(record["relationship_graph"]["nodes"])
+        self.assertTrue(record["progress"])
+
+
+class TestIntelligence(unittest.TestCase):
+    def test_finding_correlation_is_deterministic(self):
+        from core import intelligence
+        finding = {
+            "rule_id": "VAPT-ERROR-005",
+            "title": "Verbose Error / Stack Trace Disclosure",
+            "severity": "Medium",
+            "target": "app",
+            "matched_text": "stack trace",
+            "evidence": "stack trace",
+        }
+        enriched, groups = intelligence.enrich_and_correlate_findings([finding, finding])
+        self.assertEqual(enriched[0]["fingerprint"], enriched[1]["fingerprint"])
+        self.assertEqual(groups[0]["occurrence_count"], 2)
+
+    def test_replay_redacts_credentials(self):
+        from core import engine
+        record = engine.run_assessment(
+            "Target", engine.WORKFLOW_VAPT, "Basic", evidence="api_key=secretvalue"
+        )
+        self.assertNotIn("secretvalue", record["replay"]["inputs"]["evidence_redacted"])
 
 
 if __name__ == "__main__":

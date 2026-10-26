@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SecMate Enterprise adversarial testing platform">
+    <title>SecMate Enterprise</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 17px;
+            --navy-950: #020b14;
+            --navy-900: #031426;
+            --navy-850: #041a30;
+            --navy-800: #06223d;
+            --workspace-bg: #07111d;
+            --sidebar-bg: #0a1726;
+            --topbar-bg: rgba(7, 17, 29, .96);
+            --surface: #0f1d2d;
+            --surface-raised: #122235;
+            --surface-input: #081522;
+            --surface-active: #173653;
+            --line: rgba(105, 164, 204, .28);
+            --line-strong: rgba(69, 180, 249, .52);
+            --text: #edf5fb;
+            --text-secondary: #b8c9d6;
+            --muted: #9bb2c4;
+            --text-subtle: #819caf;
+            --text-disabled: #6c8598;
+            --cyan: #0bbcff;
+            --blue: #0988ff;
+            --green: #20e3a2;
+            --critical: #ff637f;
+            --high: #ff9959;
+            --warning: #f2c45e;
+            --success: #51d9aa;
+            --font-page-title: 1.65rem;
+            --font-section-title: 1rem;
+            --font-body: .875rem;
+            --font-label: .8rem;
+            --font-meta: .75rem;
+            --font-caption: .7rem;
+            --leading-tight: 1.25;
+            --leading-body: 1.55;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { margin: 0; min-height: 100%; }
+
+        body {
+            min-height: 100vh;
+            background: var(--navy-950);
+            color: var(--text);
+            font-size: 1rem;
+            line-height: var(--leading-body);
+            overflow-x: hidden;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button, input, select, textarea { font: inherit; }
+        button, a { -webkit-tap-highlight-color: transparent; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 2px solid #59bdff;
+            outline-offset: 2px;
+        }
+
+        .login-screen {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) clamp(360px, 31vw, 455px);
+            background: #020b14;
+        }
+
+        .hero {
+            position: relative;
+            isolation: isolate;
+            min-width: 0;
+            min-height: 650px;
+            overflow: hidden;
+            border-right: 1px solid rgba(40, 145, 213, .18);
+            background:
+                radial-gradient(circle at 56% 4%, rgba(0, 106, 201, .35), transparent 34%),
+                radial-gradient(circle at 16% 24%, rgba(0, 96, 174, .16), transparent 28%),
+                linear-gradient(140deg, #031526 0%, #020d19 54%, #031322 100%);
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            opacity: .3;
+            background-image:
+                radial-gradient(circle, rgba(65, 176, 255, .28) 0 1px, transparent 1.5px),
+                linear-gradient(rgba(40, 143, 214, .035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(40, 143, 214, .035) 1px, transparent 1px);
+            background-size: 34px 34px, 72px 72px, 72px 72px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,.2), transparent 62%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            inset: auto -20% -38% -20%;
+            height: 72%;
+            background: radial-gradient(ellipse at center, rgba(0, 118, 255, .16), transparent 64%);
+            filter: blur(16px);
+        }
+
+        .hero-top {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            padding: clamp(34px, 5vw, 62px) clamp(30px, 6vw, 86px);
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .shield {
+            width: 46px;
+            height: 52px;
+            flex: none;
+            filter: drop-shadow(0 0 16px rgba(0, 185, 255, .24));
+        }
+
+        .brand-name {
+            display: block;
+            font-size: 1.65rem;
+            font-weight: 760;
+            letter-spacing: -.035em;
+            line-height: 1;
+        }
+
+        .brand-tagline {
+            display: block;
+            margin-top: 7px;
+            color: var(--text-secondary);
+            font-size: .78rem;
+            font-weight: 560;
+            letter-spacing: .01em;
+        }
+
+        .environment {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 3px;
+            padding: 7px 12px;
+            border: 1px solid rgba(58, 174, 235, .28);
+            border-radius: 999px;
+            background: rgba(4, 28, 49, .74);
+            color: var(--text-secondary);
+            font-size: var(--font-meta);
+            font-weight: 650;
+            box-shadow: inset 0 0 18px rgba(7, 92, 161, .09);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 12px rgba(32, 227, 162, .88);
+        }
+
+        .environment span + span {
+            padding-left: 8px;
+            border-left: 1px solid rgba(129, 171, 201, .25);
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 2;
+            width: min(730px, calc(100% - 80px));
+            margin: clamp(68px, 10vh, 116px) auto 0;
+            text-align: center;
+        }
+
+        .hero-copy h1 {
+            margin: 0;
+            font-size: clamp(2.25rem, 4.25vw, 4.25rem);
+            line-height: 1.05;
+            letter-spacing: -.045em;
+            text-wrap: balance;
+            text-shadow: 0 8px 35px rgba(0, 0, 0, .32);
+        }
+
+        .hero-copy .accent {
+            color: var(--cyan);
+            text-shadow: 0 0 26px rgba(0, 178, 255, .2);
+        }
+
+        #mesh {
+            position: absolute;
+            z-index: 1;
+            inset: auto 0 0;
+            width: 100%;
+            height: 48%;
+            pointer-events: none;
+        }
+
+        .security-note {
+            position: absolute;
+            z-index: 3;
+            left: clamp(30px, 6vw, 86px);
+            bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: var(--font-meta);
+            font-weight: 560;
+        }
+
+        .security-note svg { color: #c5d8e6; flex: none; }
+        .security-note .divider { width: 1px; height: 13px; background: #38546a; }
+
+        .login-panel {
+            position: relative;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            min-height: 100vh;
+            padding: 42px clamp(28px, 3vw, 44px);
+            border-left: 1px solid rgba(44, 162, 235, .24);
+            background:
+                radial-gradient(circle at 55% 10%, rgba(0, 111, 204, .16), transparent 35%),
+                linear-gradient(180deg, rgba(4, 27, 49, .98), rgba(3, 20, 37, .99));
+            box-shadow: -22px 0 50px rgba(0, 0, 0, .18);
+        }
+
+        .login-card { width: 100%; max-width: 370px; margin: 0 auto; }
+
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .panel-heading h2 {
+            margin: 0;
+            font-size: 1.55rem;
+            letter-spacing: -.03em;
+        }
+
+        .panel-heading p {
+            margin: 7px 0 0;
+            color: var(--muted);
+            font-size: var(--font-body);
+            line-height: 1.5;
+        }
+
+        .help-link {
+            flex: none;
+            margin-top: 5px;
+            color: var(--text-secondary);
+            font-size: var(--font-meta);
+            text-decoration: none;
+        }
+
+        .help-link span { color: var(--cyan); }
+
+        .field { margin-top: 18px; }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        label {
+            color: var(--text-secondary);
+            font-size: var(--font-label);
+            font-weight: 650;
+        }
+
+        .forgot {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: #09b4ff;
+            font-size: var(--font-meta);
+            cursor: pointer;
+        }
+
+        .control-wrap { position: relative; }
+
+        .control-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            color: #9bb0c2;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            border: 1px solid rgba(56, 156, 222, .34);
+            border-radius: 6px;
+            outline: none;
+            background: var(--surface-input);
+            color: var(--text);
+            font-size: var(--font-body);
+            line-height: 1.45;
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+
+        input, select { height: 44px; padding: 0 42px; }
+        select { appearance: none; padding-right: 42px; cursor: pointer; }
+        textarea { min-height: 122px; padding: 13px; resize: vertical; }
+
+        input::placeholder, textarea::placeholder { color: var(--text-disabled); opacity: 1; }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: rgba(20, 183, 255, .85);
+            background: rgba(4, 38, 67, .95);
+            box-shadow: 0 0 0 3px rgba(0, 168, 255, .1);
+        }
+
+        .chevron {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid #8ca6ba;
+            border-bottom: 2px solid #8ca6ba;
+            transform: translateY(-70%) rotate(45deg);
+            pointer-events: none;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            display: grid;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: #8fa7ba;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+
+        .primary-btn, .sso-btn {
+            width: 100%;
+            border-radius: 6px;
+            color: white;
+            font-size: var(--font-body);
+            font-weight: 720;
+            cursor: pointer;
+            transition: transform .18s ease, border-color .18s ease, filter .18s ease;
+        }
+
+        .primary-btn {
+            height: 46px;
+            margin-top: 22px;
+            border: 1px solid rgba(35, 180, 255, .75);
+            background: linear-gradient(100deg, #0bb8ff, #0785ff);
+            box-shadow: 0 10px 28px rgba(0, 125, 255, .18);
+        }
+
+        .sso-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            min-height: 54px;
+            border: 1px solid rgba(0, 170, 255, .7);
+            background: rgba(1, 20, 35, .58);
+        }
+
+        .sso-btn small { display: block; margin-top: 2px; color: var(--muted); font-size: var(--font-caption); font-weight: 500; }
+        .primary-btn:hover, .sso-btn:hover { filter: brightness(1.09); transform: translateY(-1px); }
+        .primary-btn:active, .sso-btn:active { transform: translateY(0); }
+
+        .or-divider {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+            margin: 18px 0;
+            color: var(--muted);
+            font-size: var(--font-meta);
+        }
+
+        .or-divider::before, .or-divider::after { content: ""; height: 1px; background: rgba(82, 145, 187, .24); }
+
+        .new-user {
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: .78rem;
+        }
+
+        .new-user a { color: var(--cyan); text-decoration: none; }
+
+        .login-error {
+            min-height: 17px;
+            margin: 10px 0 -6px;
+            color: #ff8a9a;
+            font-size: var(--font-meta);
+        }
+
+        .workspace[hidden], .login-screen[hidden], .app-page[hidden], .onboard-step[hidden] { display: none; }
+
+        .workspace {
+            min-height: 100vh;
+            background: var(--workspace-bg);
+            color: var(--text);
+        }
+
+        .app-shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); min-height: 100vh; }
+
+        .app-sidebar {
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 22px 14px 18px;
+            border-right: 1px solid var(--line);
+            background: var(--sidebar-bg);
+        }
+
+        .app-logo { display: flex; align-items: center; gap: 10px; padding: 0 10px 22px; }
+        .app-logo .shield { width: 31px; height: 36px; }
+        .app-logo strong { font-size: 1rem; line-height: var(--leading-tight); }
+        .edition { margin-left: auto; padding: 3px 6px; border: 1px solid #2d5d84; border-radius: 4px; color: #8bcbfa; font-size: .65rem; }
+
+        .nav-group { margin-top: 13px; }
+        .nav-label { display: block; margin: 0 10px 8px; color: var(--text-subtle); font-size: var(--font-meta); font-weight: 800; letter-spacing: .16em; }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 39px;
+            margin: 3px 0;
+            padding: 0 11px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 560;
+            line-height: 1.35;
+            text-align: left;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .nav-item:hover { color: var(--text); background: rgba(64, 132, 184, .18); }
+        .nav-item.active { border-color: rgba(74, 166, 230, .4); background: var(--surface-active); color: #b9e3ff; font-weight: 680; }
+        .nav-icon { width: 17px; color: currentColor; text-align: center; }
+        .nav-count { margin-left: auto; color: var(--muted); font-size: var(--font-label); }
+        .sidebar-spacer { flex: 1; }
+
+        .operator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 13px 10px 2px;
+            border-top: 1px solid var(--line);
+        }
+
+        .avatar { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 50%; background: #1a4269; color: #9dd6ff; font-size: .68rem; font-weight: 800; }
+        .operator strong { display: block; color: var(--text); font-size: .9rem; line-height: 1.4; }
+
+        .app-main { min-width: 0; }
+
+        .app-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-height: 58px;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--line);
+            background: var(--topbar-bg);
+        }
+
+        .project-pill, .demo-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 29px;
+            padding: 0 11px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--surface-raised);
+            color: var(--text-secondary);
+            font-size: var(--font-meta);
+            line-height: 1.35;
+            font-weight: 650;
+        }
+
+        .demo-pill { border-radius: 4px; border-color: rgba(209, 151, 31, .3); background: rgba(119, 77, 6, .15); color: #e9b43e; letter-spacing: .12em; }
+        .ghost-btn { height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-raised); color: var(--text-secondary); font-size: var(--font-label); cursor: pointer; }
+
+        .page-wrap { padding: 22px; }
+        .app-page { width: min(1220px, 100%); margin: auto; }
+
+        .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 21px; }
+        .page-heading h1 { margin: 0; color: var(--text); font-size: var(--font-page-title); line-height: var(--leading-tight); letter-spacing: -.025em; }
+        .page-heading p { margin: 7px 0 0; color: var(--muted); font-size: var(--font-body); line-height: var(--leading-body); }
+
+        .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+        .metric-card, .app-card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 10px 24px rgba(0, 0, 0, .12); }
+        .metric-card { min-height: 114px; padding: 18px; }
+        .metric-label { color: var(--muted); font-size: var(--font-caption); font-weight: 780; letter-spacing: .12em; line-height: 1.4; text-transform: uppercase; }
+        .metric-value { margin-top: 9px; color: var(--text); font-size: 2.05rem; font-weight: 730; line-height: 1.05; }
+        .metric-value.red { color: var(--critical); }
+        .metric-value small { color: var(--muted); font-size: var(--font-body); }
+        .metric-delta { margin-top: 11px; color: var(--text-subtle); font-size: var(--font-meta); line-height: 1.45; }
+        .up { color: var(--critical); } .down { color: var(--success); }
+
+        .dashboard-grid { display: grid; grid-template-columns: .78fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .card-head { display: flex; justify-content: space-between; gap: 14px; padding: 15px 17px; border-bottom: 1px solid var(--line); }
+        .card-head h2 { margin: 0; color: var(--text); font-size: var(--font-section-title); line-height: 1.35; }
+        .card-head span { color: var(--text-subtle); font-size: var(--font-meta); line-height: 1.4; }
+        .card-body { padding: 18px; }
+
+        .severity-layout { display: flex; align-items: center; gap: clamp(24px, 5vw, 66px); min-height: 182px; }
+        .donut { position: relative; display: grid; width: 118px; height: 118px; flex: none; place-items: center; border-radius: 50%; background: conic-gradient(#ff526e 0 6.4%, #ff8042 6.4% 25.5%, #f5bc3c 25.5% 63.8%, #36d19a 63.8% 100%); }
+        .donut::after { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: var(--surface); }
+        .donut-value { position: relative; z-index: 1; color: white; text-align: center; font-size: 1.55rem; font-weight: 760; }
+        .donut-value small { display: block; margin-top: 1px; color: var(--muted); font-size: var(--font-caption); letter-spacing: .08em; }
+        .legend { flex: 1; display: grid; gap: 11px; }
+        .legend-row { display: flex; align-items: center; gap: 9px; color: var(--text-secondary); font-size: var(--font-label); line-height: 1.4; }
+        .legend-row b { margin-left: auto; color: var(--text); }
+        .legend-dot { width: 7px; height: 7px; border-radius: 2px; }
+
+        .trend-chart { width: 100%; height: 182px; overflow: visible; }
+        .trend-grid { stroke: #284055; stroke-width: 1; }
+        .trend-fill { fill: url(#trend-fill); }
+        .trend-line { fill: none; stroke: #3f9cf6; stroke-width: 2.4; }
+
+        .list-card { overflow: hidden; }
+        .data-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 64px; padding: 11px 16px; border-top: 1px solid var(--line); }
+        .data-row:first-child { border-top: 0; }
+        .row-index { color: var(--text-subtle); font-size: var(--font-meta); }
+        .row-title { color: var(--text-secondary); font-size: var(--font-body); font-weight: 680; line-height: 1.4; }
+        .row-meta { margin-top: 5px; color: var(--muted); font-size: var(--font-meta); line-height: 1.5; }
+        .score { color: var(--critical); font: 700 var(--font-body) ui-monospace, monospace; }
+
+        .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-bottom: 15px; }
+        .step-tab { display: flex; align-items: center; gap: 9px; min-height: 54px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--muted); text-align: left; cursor: pointer; }
+        .step-tab.active { border-color: var(--line-strong); background: var(--surface-active); color: var(--text); }
+        .step-number { display: grid; width: 24px; height: 24px; flex: none; place-items: center; border-radius: 50%; background: #183149; color: var(--text-subtle); font-size: var(--font-meta); font-weight: 800; }
+        .step-tab.active .step-number { background: #2779ba; color: white; }
+        .step-tab b { display: block; font-size: var(--font-label); line-height: 1.35; letter-spacing: .04em; }
+        .step-tab span:last-child { display: block; margin-top: 2px; font-size: var(--font-caption); line-height: 1.4; }
+
+        .form-card { padding: 18px; }
+        .form-card-title { display: flex; justify-content: space-between; margin: -18px -18px 17px; padding: 14px 17px; border-bottom: 1px solid var(--line); }
+        .form-card-title h2 { margin: 0; color: var(--text); font-size: var(--font-section-title); line-height: 1.35; }
+        .form-card-title span { color: var(--text-subtle); font-size: var(--font-meta); line-height: 1.4; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+        .form-grid .wide { grid-column: 1 / -1; }
+        .form-grid label { display: block; margin-bottom: 7px; color: var(--text-secondary); font-size: var(--font-label); }
+        .form-grid input, .form-grid select { height: 42px; padding: 0 11px; border-color: var(--line); background: var(--surface-input); font-size: var(--font-body); }
+        .form-grid textarea { min-height: 100px; border-color: var(--line); background: var(--surface-input); font-size: var(--font-body); }
+        .choice-list { display: flex; flex-wrap: wrap; gap: 7px; }
+        .choice { position: relative; }
+        .choice input { position: absolute; opacity: 0; pointer-events: none; }
+        .choice span { display: inline-flex; align-items: center; min-height: 31px; padding: 0 11px; border: 1px solid #3477a8; border-radius: 999px; color: #9dccf0; font-size: var(--font-meta); cursor: pointer; }
+        .choice input:checked + span { border-color: #368fd2; background: #102d4b; color: #b9ddfb; }
+        .form-help { margin: 10px 0 0; color: var(--muted); font-size: var(--font-meta); line-height: 1.5; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 15px; }
+        .action-btn { min-width: 92px; height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-raised); color: var(--text-secondary); font-size: var(--font-label); font-weight: 650; cursor: pointer; }
+        .action-btn.primary { border-color: #3598e7; background: #3697ed; color: white; }
+
+        .assessment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .assessment-grid .wide { grid-column: 1 / -1; }
+        .assessment-grid input, .assessment-grid select { padding-left: 11px; }
+        .assessment-grid label { display: block; margin-bottom: 7px; }
+        .assessment-submit { width: auto; min-width: 155px; height: 38px; margin: 0; padding: 0 18px; }
+        .integration-panel { padding: 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: rgba(18, 53, 82, .34); }
+        .integration-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+        .integration-head strong { display: block; color: var(--text); font-size: var(--font-section-title); }
+        .integration-head p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-meta); line-height: 1.5; }
+        .integration-toggle { display: inline-flex !important; align-items: center; gap: 8px; margin-top: 13px; color: var(--text-secondary); }
+        .integration-toggle input { width: 18px; height: 18px; accent-color: #3ca3f5; }
+        .integration-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--line); }
+        .integration-settings .wide { grid-column: 1 / -1; }
+        .integration-settings[hidden] { display: none; }
+        .result-title { margin: 24px 0 10px; color: var(--text); font-size: var(--font-section-title); }
+        #result { min-height: 150px; margin: 0; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #06101b; color: #b4daf0; font: var(--font-label)/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+
+        .filter-bar { display: flex; gap: 9px; margin-bottom: 13px; }
+        .filter-bar input, .filter-bar select { width: auto; height: 40px; padding: 0 10px; font-size: var(--font-label); }
+        .filter-bar input { min-width: 230px; }
+        .table-wrap { overflow-x: auto; }
+        .app-table { width: 100%; border-collapse: collapse; font-size: var(--font-label); line-height: 1.5; }
+        .app-table th { padding: 12px 13px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: var(--font-caption); letter-spacing: .07em; text-align: left; text-transform: uppercase; }
+        .app-table td { padding: 14px 13px; border-bottom: 1px solid var(--line); color: var(--text-secondary); }
+        .severity { display: inline-block; padding: 4px 7px; border: 1px solid currentColor; border-radius: 4px; font-size: var(--font-caption); font-weight: 780; text-transform: uppercase; }
+        .severity.critical { background: rgba(255, 99, 127, .14); color: var(--critical); }
+        .severity.high { background: rgba(255, 153, 89, .14); color: var(--high); }
+        .severity.medium { background: rgba(242, 196, 94, .13); color: var(--warning); }
+        .severity.low { background: rgba(81, 217, 170, .12); color: var(--success); }
+        .app-table tbody tr[data-finding-index] { cursor: pointer; transition: background .16s ease; }
+        .app-table tbody tr[data-finding-index]:hover { background: rgba(42, 132, 199, .09); }
+        .gate-chip { display: inline-flex; align-items: center; min-height: 25px; padding: 0 9px; border: 1px solid currentColor; border-radius: 999px; font-size: var(--font-caption); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .gate-chip.pass { background: rgba(81, 217, 170, .12); color: var(--success); }
+        .gate-chip.review { background: rgba(242, 196, 94, .13); color: var(--warning); }
+        .gate-chip.fail { background: rgba(255, 99, 127, .14); color: var(--critical); }
+        .finding-detail { position: fixed; z-index: 41; top: 0; right: 0; width: min(520px, 94vw); height: 100vh; margin: 0; overflow-y: auto; border-radius: 0; box-shadow: -24px 0 60px rgba(0,0,0,.48); }
+        .drawer-backdrop { position: fixed; z-index: 40; inset: 0; background: rgba(1, 7, 14, .72); backdrop-filter: blur(3px); }
+        .drawer-backdrop[hidden], .finding-detail[hidden] { display: none; }
+        .finding-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .finding-detail-grid p { margin: 4px 0 12px; color: var(--text-secondary); font-size: var(--font-label); line-height: 1.6; }
+        .factor-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .factor-line b { color: var(--text-secondary); font-size: var(--font-label); line-height: 1.45; }
+        .factor-line small { display: block; margin-top: 4px; color: var(--muted); font-size: var(--font-meta); line-height: 1.55; }
+        .action-btn:disabled { opacity: .62; cursor: not-allowed; }
+        .comparison-panel { margin-top: 14px; }
+        .comparison-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+        .comparison-controls select { height: 42px; padding: 0 32px 0 10px; border-color: var(--line); background: var(--surface-input); font-size: var(--font-label); }
+        .comparison-result { margin-top: 14px; }
+        .presentation-overlay { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 32px; background: radial-gradient(circle at 50% 12%, rgba(0, 105, 190, .22), transparent 38%), #030b15; }
+        .presentation-overlay[hidden] { display: none; }
+        .presentation-stage { width: min(1040px, 100%); }
+        .presentation-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+        .presentation-head h2 { margin: 8px 0 0; font-size: clamp(1.8rem, 4vw, 3.4rem); }
+        .presentation-kicker { color: #69bfff; font-size: var(--font-meta); font-weight: 800; letter-spacing: .16em; }
+        .presentation-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .presentation-summary { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; margin-top: 14px; }
+
+        .reports-grid { display: grid; grid-template-columns: 245px minmax(0, 1fr); gap: 14px; }
+        .template-panel { align-self: start; }
+        .template-list { display: grid; gap: 8px; padding: 12px; }
+        .template-option { display: block; padding: 13px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-raised); cursor: pointer; }
+        .template-option.active { border-color: #3288ce; background: #102947; }
+        .template-option strong { display: block; color: var(--text-secondary); font-size: var(--font-label); line-height: 1.4; }
+        .template-option span { display: block; margin: 5px 0 0 21px; color: var(--muted); font-size: var(--font-meta); line-height: 1.55; }
+        .template-option input { width: auto; height: auto; margin-right: 7px; accent-color: #3ca3f5; }
+        .scope-list { display: grid; gap: 12px; padding: 15px; color: var(--muted); font-size: var(--font-label); line-height: 1.5; }
+        .scope-list div { display: flex; justify-content: space-between; gap: 10px; }
+        .scope-list b { color: var(--text-secondary); }
+        .export-btn { width: calc(100% - 24px); height: 40px; margin: 0 12px 13px; border: 0; border-radius: 5px; background: #3c9cf2; color: white; font-size: var(--font-label); font-weight: 700; cursor: pointer; }
+
+        .report-paper { padding: clamp(26px, 4vw, 48px); }
+        .report-eyebrow { color: #69bfff; font-size: var(--font-meta); font-weight: 800; letter-spacing: .15em; }
+        .report-paper h2 { margin: 14px 0 5px; font-size: 1.5rem; }
+        .report-meta { color: var(--muted); font: var(--font-meta) ui-monospace, monospace; }
+        .report-rule { height: 2px; margin: 24px 0; background: #2c78b4; }
+        .report-copy { color: var(--text-secondary); font-size: var(--font-body); line-height: 1.7; }
+        .report-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 19px 0; }
+        .report-metric { padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface-input); }
+        .report-metric strong { display: block; font-size: 1.25rem; }
+        .report-metric span { color: var(--muted); font-size: var(--font-caption); line-height: 1.4; text-transform: uppercase; }
+        .report-section h3 { margin: 22px 0 8px; color: var(--text); font-size: var(--font-section-title); line-height: 1.4; }
+
+        .toast { position: fixed; right: 22px; bottom: 22px; z-index: 20; padding: 12px 16px; border: 1px solid #358f72; border-radius: 7px; background: #0d3029; color: #8ae7c4; font-size: var(--font-label); line-height: 1.45; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+        .toast[hidden] { display: none; }
+
+        @media (max-width: 1120px) {
+            .metric-grid { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .stepper { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+            .login-screen { grid-template-columns: 1fr; }
+            .hero { min-height: 560px; border-right: 0; }
+            .login-panel { min-height: auto; padding-block: 64px; border-top: 1px solid var(--line); border-left: 0; }
+            .hero-copy { margin-top: 55px; }
+            #mesh { height: 45%; }
+            .app-shell { grid-template-columns: 74px minmax(0, 1fr); }
+            .app-sidebar { padding-inline: 9px; }
+            .app-logo { justify-content: center; padding-inline: 0; }
+            .app-logo strong, .edition, .nav-label, .nav-item span:not(.nav-icon), .nav-count, .operator div { display: none; }
+            .nav-item { justify-content: center; padding: 0; }
+            .metric-grid { grid-template-columns: 1fr 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .stepper { grid-template-columns: 1fr 1fr; }
+            .reports-grid { grid-template-columns: 1fr; }
+            .card-head { flex-wrap: wrap; }
+        }
+
+        @media (max-width: 560px) {
+            .hero { min-height: 510px; }
+            .hero-top { padding: 28px 22px; }
+            .brand-name { font-size: 1.35rem; }
+            .brand-tagline { font-size: var(--font-caption); }
+            .shield { width: 39px; height: 45px; }
+            .environment span:last-child { display: none; }
+            .hero-copy { width: calc(100% - 38px); margin-top: 58px; }
+            .hero-copy h1 { font-size: clamp(2rem, 10vw, 3rem); }
+            .security-note { left: 22px; right: 22px; bottom: 20px; font-size: var(--font-caption); }
+            .security-note .divider, .security-note span:first-of-type { display: none; }
+            .login-panel { padding: 46px 22px; }
+            .panel-heading { display: block; }
+            .help-link { display: inline-block; margin-top: 12px; }
+            .app-shell { display: block; }
+            .app-sidebar { position: static; display: block; width: 100%; height: auto; padding: 11px; }
+            .app-logo, .nav-label, .sidebar-spacer, .operator { display: none; }
+            .nav-group { display: flex; gap: 5px; margin: 0; overflow-x: auto; }
+            .nav-group + .nav-group { margin-top: 5px; }
+            .nav-item { width: auto; min-width: 43px; flex: 0 0 auto; }
+            .app-topbar { justify-content: flex-start; padding: 10px 12px; overflow-x: auto; }
+            .project-pill, .demo-pill, .ghost-btn { flex: 0 0 auto; white-space: nowrap; }
+            .page-wrap { padding: 14px; }
+            .page-heading { flex-direction: column; }
+            .page-heading .action-btn { align-self: flex-start; }
+            .metric-grid, .form-grid, .assessment-grid, .report-metrics { grid-template-columns: 1fr; }
+            .assessment-grid .wide, .form-grid .wide { grid-column: auto; }
+            .integration-settings { grid-template-columns: 1fr; }
+            .integration-settings .wide { grid-column: auto; }
+            .stepper { grid-template-columns: 1fr; }
+            .step-tab { min-height: 42px; }
+            .severity-layout { align-items: flex-start; gap: 24px; }
+            .filter-bar { flex-direction: column; }
+            .filter-bar input, .filter-bar select { width: 100%; }
+            .finding-detail-grid { grid-template-columns: 1fr; }
+            .comparison-controls, .presentation-grid, .presentation-summary { grid-template-columns: 1fr; }
+            .presentation-overlay { align-items: start; overflow-y: auto; padding: 18px; }
+        }
+
+        @media print {
+            body { background: white; color: black; }
+            .app-sidebar, .app-topbar, .page-heading, .template-panel { display: none !important; }
+            .app-shell, .reports-grid { display: block; }
+            .page-wrap { padding: 0; }
+            .app-page:not([data-page="reports"]) { display: none !important; }
+            .report-paper { border: 0; background: white; color: #17202b; box-shadow: none; }
+            .report-paper * { color: inherit !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+<main id="login-screen" class="login-screen">
+    <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-top">
+            <a class="brand" href="#" aria-label="SecMate home">
+                <svg class="shield" viewBox="0 0 48 56" aria-hidden="true">
+                    <path d="M24 2.6 43 9v14.2c0 13.3-7.8 24.3-19 30.1C12.8 47.5 5 36.5 5 23.2V9l19-6.4Z" fill="none" stroke="#16c4ff" stroke-width="3"/>
+                    <path d="M24 8.3 37.5 13v10c0 9.8-5.3 18.3-13.5 23.3V8.3Z" fill="rgba(6,145,255,.28)" stroke="#087ef5" stroke-width="1.7"/>
+                </svg>
+                <span>
+                    <span class="brand-name">SecMate</span>
+                    <span class="brand-tagline">Secure AI. Trust What Runs.</span>
+                </span>
+            </a>
+
+            <div class="environment" aria-label="Production enterprise gateway">
+                <i class="status-dot"></i>
+                <span>Production</span>
+                <span>Enterprise Gateway</span>
+            </div>
+        </div>
+
+        <div class="hero-copy">
+            <h1 id="hero-title">Adversarial testing for<br>AI agents, <span class="accent">built for enterprise.</span></h1>
+        </div>
+
+        <canvas id="mesh" aria-hidden="true"></canvas>
+
+        <div class="security-note">
+            <svg width="15" height="17" viewBox="0 0 16 18" fill="none" aria-hidden="true">
+                <rect x="2.5" y="7" width="11" height="9" rx="2" fill="currentColor"/>
+                <path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>Enterprise Security</span>
+            <i class="divider"></i>
+            <span>Your credentials are encrypted and never included in audit exports.</span>
+        </div>
+    </section>
+
+    <aside class="login-panel">
+        <div class="login-card">
+            <div class="panel-heading">
+                <div>
+                    <h2>Welcome back</h2>
+                    <p>Sign in to your SecMate account</p>
+                </div>
+                <a class="help-link" href="mailto:support@secmate.ai">◌&nbsp; Need help? <span>Contact support</span></a>
+            </div>
+
+            <form id="login-form" novalidate>
+                <div class="field">
+                    <div class="field-row"><label for="organization">Organization</label></div>
+                    <div class="control-wrap">
+                        <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 21V6l8-3 8 3v15M8 8h1m6 0h1M8 12h1m6 0h1M8 16h1m6 0h1M2 21h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        <select id="organization" name="organization" aria-label="Organization">
+                            <option>Paramount Computer Systems</option>
+                            <option>SecMate Demo Organization</option>
+                        </select>
+                        <i class="chevron"></i>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-row"><label for="email">Work email</label></div>
+                    <div class="control-wrap">
+                        <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="m4 7 8 6 8-6" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                        <input id="email" name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <label for="password">Password</label>
+                        <button class="forgot" type="button">Forgot password?</button>
+                    </div>
+                    <div class="control-wrap">
+                        <svg class="control-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+                        <button id="password-toggle" class="password-toggle" type="button" aria-label="Show password">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z" stroke="currentColor" stroke-width="1.7"/>
+                                <circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <p id="login-error" class="login-error" role="alert"></p>
+                <button class="primary-btn" type="submit">Sign In</button>
+            </form>
+
+            <div class="or-divider">or</div>
+
+            <button id="sso-button" class="sso-btn" type="button">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 20V9l8-4 8 4v11M8 20v-6h8v6M8 10h.01M12 10h.01M16 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+                <span>Sign in with SSO<small>Recommended for enterprise organizations</small></span>
+            </button>
+
+            <p class="new-user">New to SecMate? <a href="mailto:admin@secmate.ai">Contact your administrator</a></p>
+        </div>
+    </aside>
+</main>
+
+<section id="workspace" class="workspace" hidden>
+    <div class="app-shell">
+        <aside class="app-sidebar">
+            <div class="app-logo">
+                <svg class="shield" viewBox="0 0 48 56" aria-hidden="true">
+                    <path d="M24 2.6 43 9v14.2c0 13.3-7.8 24.3-19 30.1C12.8 47.5 5 36.5 5 23.2V9l19-6.4Z" fill="none" stroke="#16c4ff" stroke-width="3"/>
+                    <path d="M24 8.3 37.5 13v10c0 9.8-5.3 18.3-13.5 23.3V8.3Z" fill="rgba(6,145,255,.28)" stroke="#087ef5" stroke-width="1.7"/>
+                </svg>
+                <strong>secmate</strong><span class="edition">PEC</span>
+            </div>
+
+            <nav aria-label="SecMate modules">
+                <div class="nav-group">
+                    <span class="nav-label">OPERATE</span>
+                    <button class="nav-item active" type="button" data-page-target="overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
+                    <button class="nav-item" type="button" data-page-target="engagements"><span class="nav-icon">◫</span><span>Engagements</span></button>
+                    <button class="nav-item" type="button" data-page-target="onboard"><span class="nav-icon">▣</span><span>Onboard App</span></button>
+                    <button class="nav-item" type="button" data-page-target="live"><span class="nav-icon">◉</span><span>Live Agent Run</span><span id="live-count" class="nav-count">4</span></button>
+                </div>
+                <div class="nav-group">
+                    <span class="nav-label">ANALYZE</span>
+                    <button class="nav-item" type="button" data-page-target="findings"><span class="nav-icon">⌁</span><span>Findings</span><span id="finding-count" class="nav-count">47</span></button>
+                    <button class="nav-item" type="button" data-page-target="paths"><span class="nav-icon">⌘</span><span>Attack Paths</span><span id="path-count" class="nav-count">4</span></button>
+                    <button class="nav-item" type="button" data-page-target="reports"><span class="nav-icon">▤</span><span>Reports</span></button>
+                </div>
+            </nav>
+
+            <div class="sidebar-spacer"></div>
+            <button class="nav-item" type="button" data-page-target="governance"><span class="nav-icon">◇</span><span>Governance &amp; Standards</span></button>
+            <div class="operator"><span class="avatar">◇</span><div><strong>SecMate<br>Ayisha Siddika</strong></div></div>
+        </aside>
+
+        <div class="app-main">
+            <header class="app-topbar">
+                <span class="project-pill"><i class="status-dot"></i> Project Nightfall &nbsp;·&nbsp; active</span>
+                <span id="data-mode" class="demo-pill">△ DEMO · MOCK DATA</span>
+                <button id="sign-out" class="ghost-btn" type="button">Sign out</button>
+            </header>
+
+            <main class="page-wrap">
+                <section class="app-page" data-page="overview">
+                    <div class="page-heading"><div><h1>Risk Posture</h1><p>Continuous security testing across your organization’s attack surface</p></div><button id="presentation-mode" class="action-btn" type="button" disabled>Presentation mode</button></div>
+                    <div class="metric-grid">
+                        <article class="metric-card"><div id="metric-one-label" class="metric-label">Open findings</div><div id="metric-one-value" class="metric-value">47</div><div id="metric-one-detail" class="metric-delta"><span class="up">▲ 6</span> vs last cycle</div></article>
+                        <article class="metric-card"><div id="metric-two-label" class="metric-label">Critical exposure</div><div id="metric-two-value" class="metric-value red">3</div><div id="metric-two-detail" class="metric-delta"><span class="down">▼ 2</span> remediated</div></article>
+                        <article class="metric-card"><div id="metric-three-label" class="metric-label">Assets at risk</div><div id="metric-three-value" class="metric-value">18<small> /124</small></div><div id="metric-three-detail" class="metric-delta">14.5% of estate</div></article>
+                        <article class="metric-card"><div id="metric-four-label" class="metric-label">Mean time to remediate</div><div id="metric-four-value" class="metric-value">9.4<small>d</small></div><div id="metric-four-detail" class="metric-delta"><span class="down">▼ 1.8d</span> improving</div></article>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <article class="app-card"><div class="card-head"><h2>Findings by severity</h2><span id="severity-card-meta">47 open</span></div><div class="card-body severity-layout"><div class="donut"><div id="severity-total" class="donut-value">47<small>OPEN</small></div></div><div id="severity-legend" class="legend"><div class="legend-row"><i class="legend-dot" style="background:#ff526e"></i>Critical <b>3</b></div><div class="legend-row"><i class="legend-dot" style="background:#ff8042"></i>High <b>9</b></div><div class="legend-row"><i class="legend-dot" style="background:#f5bc3c"></i>Medium <b>18</b></div><div class="legend-row"><i class="legend-dot" style="background:#36d19a"></i>Low <b>17</b></div></div></div></article>
+                        <article class="app-card"><div class="card-head"><h2 id="posture-card-title">Risk trend</h2><span id="posture-card-meta">last 90 days · weighted risk score</span></div><div id="posture-card-body" class="card-body"><svg class="trend-chart" viewBox="0 0 600 190" role="img" aria-label="Risk score falling over 90 days"><defs><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#338fe7" stop-opacity=".28"/><stop offset="1" stop-color="#338fe7" stop-opacity="0"/></linearGradient></defs><path class="trend-grid" d="M0 20H600M0 80H600M0 140H600"/><path class="trend-fill" d="M0 44 44 52 88 36 132 62 176 74 220 56 264 88 308 105 352 96 396 124 440 114 484 143 528 151 572 167 600 172V190H0Z"/><path class="trend-line" d="M0 44 44 52 88 36 132 62 176 74 220 56 264 88 308 105 352 96 396 124 440 114 484 143 528 151 572 167 600 172"/><circle cx="600" cy="172" r="4" fill="#5eb7ff"/></svg></div></article>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <article class="app-card list-card"><div class="card-head"><h2 id="outcome-card-title">Top attack paths</h2><span id="outcome-card-meta">View all →</span></div><div id="outcome-card-body"><div class="data-row"><span class="row-index">1</span><div><div class="row-title">Web app → Domain Admin</div><div class="row-meta">6 hops · SQLi → cred dump → Kerberoast</div></div><span class="score">9.6</span></div><div class="data-row"><span class="row-index">2</span><div><div class="row-title">API RCE → cloud takeover</div><div class="row-meta">4 hops · deserialization → IAM keys</div></div><span class="score">9.1</span></div><div class="data-row"><span class="row-index">3</span><div><div class="row-title">IDOR → cross-tenant PII</div><div class="row-meta">3 hops · auth bypass → data export</div></div><span class="score">8.4</span></div></div></article>
+                        <article class="app-card list-card"><div class="card-head"><h2>Recent agent activity</h2><span id="activity-card-meta">Coordinator · live</span></div><div id="activity-card-body"><div class="data-row"><span class="row-index">⌕</span><div><div class="row-title">Recon agent enumerated 124 hosts, 37 live services</div><div class="row-meta">2 min ago</div></div><span></span></div><div class="data-row"><span class="row-index">△</span><div><div class="row-title">Vuln-analysis flagged SQLi on app.internal.corp</div><div class="row-meta">6 min ago</div></div><span></span></div><div class="data-row"><span class="row-index">✓</span><div><div class="row-title">Operator approved exploitation of SECM-0002</div><div class="row-meta">14 min ago</div></div><span></span></div></div></article>
+                    </div>
+                </section>
+
+                <section class="app-page" data-page="engagements" hidden>
+                    <div class="page-heading"><div><h1>Engagements</h1><p>Scope and monitor security testing campaigns</p></div><button class="action-btn primary" type="button" data-go-page="onboard">New engagement</button></div>
+                    <article class="app-card list-card"><div class="card-head"><h2>Active engagements</h2><span>3 active</span></div><div class="data-row"><span class="status-dot"></span><div><div class="row-title">Project Nightfall</div><div class="row-meta">124 assets · Combined assessment · Sep 01–30</div></div><span class="down">Active</span></div><div class="data-row"><span class="status-dot"></span><div><div class="row-title">Phoenix Checkout</div><div class="row-meta">18 assets · Application security · Sep 12–26</div></div><span class="down">Active</span></div></article>
+                    <article id="comparison-panel" class="app-card form-card comparison-panel" hidden><div class="form-card-title"><h2>Assessment comparison</h2><span>regression tracking from completed runs</span></div><div class="comparison-controls"><div><label for="compare-baseline">Baseline</label><select id="compare-baseline"></select></div><div><label for="compare-candidate">Candidate</label><select id="compare-candidate"></select></div><button id="run-comparison" class="action-btn primary" type="button">Compare</button></div><div id="comparison-result" class="comparison-result"></div></article>
+                </section>
+
+                <section class="app-page" data-page="onboard" hidden>
+                    <div class="page-heading"><div><h1>Onboard Application</h1><p>Register an app, characterize its stack, and auto-map CVEs &amp; security standards</p></div></div>
+                    <div id="stepper" class="stepper">
+                        <button class="step-tab active" type="button" data-step-target="1"><span class="step-number">01</span><span><b>STEP 01</b>Identity</span></button>
+                        <button class="step-tab" type="button" data-step-target="2"><span class="step-number">02</span><span><b>STEP 02</b>Characterize</span></button>
+                        <button class="step-tab" type="button" data-step-target="3"><span class="step-number">03</span><span><b>STEP 03</b>Scope &amp; RoE</span></button>
+                        <button class="step-tab" type="button" data-step-target="4"><span class="step-number">04</span><span><b>STEP 04</b>CVE &amp; standards</span></button>
+                        <button class="step-tab" type="button" data-step-target="5"><span class="step-number">05</span><span><b>STEP 05</b>Review</span></button>
+                    </div>
+
+                    <form id="onboarding-form">
+                        <article class="app-card form-card onboard-step" data-step="1"><div class="form-card-title"><h2>Application identity</h2><span>who owns it &amp; what data it touches</span></div><div class="form-grid"><div><label for="app-name">Application name</label><input id="app-name" name="appName" value="Phoenix Checkout" required></div><div><label for="app-owner">Owner / team</label><input id="app-owner" name="owner" value="Payments Platform" required></div><div><label for="criticality">Business criticality</label><select id="criticality" name="criticality"><option>Tier 1 · mission critical</option><option>Tier 2 · business critical</option><option>Tier 3 · standard</option></select></div><div><label for="app-environment">Environment</label><select id="app-environment" name="environment"><option>Production</option><option>Staging</option><option>Development</option></select></div><div class="wide"><label>Data classification &amp; nature</label><div class="choice-list"><label class="choice"><input type="checkbox" checked><span>✓ Cardholder data (PCI)</span></label><label class="choice"><input type="checkbox" checked><span>✓ PII</span></label><label class="choice"><input type="checkbox"><span>PHI (health)</span></label><label class="choice"><input type="checkbox" checked><span>✓ Internet-facing</span></label><label class="choice"><input type="checkbox" checked><span>✓ Exposes a REST API</span></label><label class="choice"><input type="checkbox" checked><span>✓ Contains a GenAI / LLM feature</span></label></div><p class="form-help">These flags decide the mapping in Step 4 — e.g. PCI → PCI DSS 11.4, GenAI → OWASP LLM Top 10.</p></div></div></article>
+                        <article class="app-card form-card onboard-step" data-step="2" hidden><div class="form-card-title"><h2>Characterize the application</h2><span>stack, interfaces &amp; deployment model</span></div><div class="form-grid"><div><label for="app-url">Primary URL</label><input id="app-url" name="url" value="https://checkout.internal.corp"></div><div><label for="stack">Technology stack</label><input id="stack" name="stack" value="Python, React, PostgreSQL"></div><div><label for="deploy-model">Deployment model</label><select id="deploy-model"><option>Kubernetes</option><option>Serverless</option><option>Virtual machines</option></select></div><div><label for="auth-model">Authentication</label><select id="auth-model"><option>OIDC / SSO</option><option>Local credentials</option><option>API keys</option></select></div><div class="wide"><label for="app-description">Architecture notes</label><textarea id="app-description">Public checkout SPA backed by REST APIs and a payment orchestration service.</textarea></div></div></article>
+                        <article class="app-card form-card onboard-step" data-step="3" hidden><div class="form-card-title"><h2>Scope &amp; rules of engagement</h2><span>define safe operating boundaries</span></div><div class="form-grid"><div class="wide"><label for="scope-targets">In-scope targets</label><textarea id="scope-targets">checkout.internal.corp&#10;api.checkout.internal.corp</textarea></div><div><label for="test-window">Testing window</label><input id="test-window" value="22:00–04:00 UTC"></div><div><label for="approval">Approval model</label><select id="approval"><option>Operator approval before exploit</option><option>Fully autonomous simulation</option></select></div><div class="wide"><label>Allowed techniques</label><div class="choice-list"><label class="choice"><input type="checkbox" checked><span>✓ Reconnaissance</span></label><label class="choice"><input type="checkbox" checked><span>✓ Safe exploitation</span></label><label class="choice"><input type="checkbox"><span>Credential attacks</span></label><label class="choice"><input type="checkbox"><span>Denial of service</span></label></div></div></div></article>
+                        <article class="app-card form-card onboard-step" data-step="4" hidden><div class="form-card-title"><h2>CVE &amp; standards mapping</h2><span>automatically selected from application context</span></div><div class="form-grid"><div class="wide"><label>Security standards</label><div class="choice-list"><label class="choice"><input type="checkbox" checked><span>✓ OWASP ASVS</span></label><label class="choice"><input type="checkbox" checked><span>✓ OWASP LLM Top 10</span></label><label class="choice"><input type="checkbox" checked><span>✓ PCI DSS 4.0</span></label><label class="choice"><input type="checkbox"><span>NIST 800-53</span></label><label class="choice"><input type="checkbox" checked><span>✓ MITRE ATT&amp;CK</span></label></div></div><div class="wide"><label for="cve-seed">Priority CVEs / CWEs</label><textarea id="cve-seed">CWE-89 SQL Injection&#10;CWE-287 Improper Authentication&#10;CWE-918 SSRF</textarea></div></div></article>
+                        <article class="app-card form-card onboard-step" data-step="5" hidden><div class="form-card-title"><h2>Review onboarding package</h2><span>confirm before creating the engagement</span></div><div id="onboard-review" class="scope-list"><div><span>Application</span><b>Phoenix Checkout</b></div><div><span>Owner</span><b>Payments Platform</b></div><div><span>Environment</span><b>Production</b></div><div><span>Standards</span><b>ASVS · PCI DSS · MITRE</b></div></div></article>
+                        <div class="form-actions"><button id="onboard-back" class="action-btn" type="button" hidden>Back</button><button id="onboard-next" class="action-btn primary" type="button">Continue</button></div>
+                    </form>
+                </section>
+
+                <section class="app-page" data-page="live" hidden>
+                    <div class="page-heading"><div><h1>Live Agent Run</h1><p>Execute the SecMate simulation engine against approved scope</p></div></div>
+                    <article class="app-card form-card">
+                        <form id="assessment-form" class="assessment-grid">
+                            <div><label for="target">Target name / assessment label</label><input id="target" name="target" value="demo-app" maxlength="200" required><p class="form-help">Used to identify this assessment in findings and reports.</p></div>
+                            <div><label for="workflow">Workflow</label><select id="workflow" name="workflow"><option>VAPT Security Analysis</option><option>Red Team-Blue Team Assessment</option><option selected>Combined Security Assessment</option></select></div>
+                            <div><label for="intensity">Intensity</label><select id="intensity" name="intensity"><option>Basic</option><option selected>Standard</option><option>Advanced</option></select></div>
+                            <div class="wide integration-panel"><div class="integration-head"><div><strong>DeepTeam AI red teaming</strong><p>Optional real DeepTeam generation and evaluation, merged into the SecMate assessment record.</p></div><span id="deepteam-status" class="gate-chip review">Checking</span></div><label class="integration-toggle" for="deepteam-enabled"><input id="deepteam-enabled" type="checkbox"> Include DeepTeam in this run</label><div id="deepteam-settings" class="integration-settings" hidden><div><label for="deepteam-target-mode">Target connector</label><select id="deepteam-target-mode"><option value="secmate_demo">SecMate demo simulator</option><option value="http">HTTP API endpoint</option></select></div><div><label>Execution note</label><p class="form-help">HTTP mode accepts only an administrator-approved HTTPS hostname. Authentication stays in server-side environment variables.</p></div><div id="deepteam-endpoint-field" class="wide" hidden><label for="deepteam-target-endpoint">Target API endpoint URL</label><input id="deepteam-target-endpoint" type="url" inputmode="url" autocomplete="url" maxlength="2048" placeholder="https://api.example.com/chat" disabled><p class="form-help">DeepTeam sends generated test prompts to this endpoint. Use only a system you own or are authorized to test.</p></div><div class="wide"><label>DeepTeam vulnerabilities</label><div class="choice-list"><label class="choice"><input type="checkbox" name="deepteamVulnerability" value="PromptLeakage" checked><span>Prompt leakage</span></label><label class="choice"><input type="checkbox" name="deepteamVulnerability" value="PIILeakage" checked><span>PII leakage</span></label><label class="choice"><input type="checkbox" name="deepteamVulnerability" value="SQLInjection"><span>SQL injection</span></label><label class="choice"><input type="checkbox" name="deepteamVulnerability" value="ExcessiveAgency"><span>Excessive agency</span></label></div></div><div class="wide"><label>Attack transformations</label><div class="choice-list"><label class="choice"><input type="checkbox" name="deepteamAttack" value="PromptInjection" checked><span>Prompt injection</span></label><label class="choice"><input type="checkbox" name="deepteamAttack" value="Roleplay" checked><span>Roleplay</span></label><label class="choice"><input type="checkbox" name="deepteamAttack" value="Base64"><span>Base64</span></label><label class="choice"><input type="checkbox" name="deepteamAttack" value="SystemOverride"><span>System override</span></label></div></div></div></div>
+                            <div class="wide"><label for="evidence">Evidence / Context</label><textarea id="evidence" name="evidence" maxlength="50000">Example application contains a possible SQL injection input and weak authentication configuration.</textarea></div>
+                            <div class="wide"><button id="submit" class="primary-btn assessment-submit" type="submit">Run Assessment</button></div>
+                        </form>
+                        <h2 class="result-title">Agent output</h2><pre id="result" aria-live="polite">Waiting for assessment…</pre>
+                    </article>
+                </section>
+
+                <section class="app-page" data-page="findings" hidden>
+                    <div class="page-heading"><div><h1>Findings</h1><p>Prioritized evidence produced by live assessments</p></div></div>
+                    <div class="filter-bar"><input id="finding-search" placeholder="Search findings"><select id="severity-filter"><option>All severities</option><option>Critical</option><option>High</option><option>Medium</option></select></div>
+                    <article class="app-card table-wrap"><table class="app-table"><thead><tr><th>ID</th><th>Finding</th><th>Asset</th><th>Severity</th><th>Status</th></tr></thead><tbody id="findings-body"><tr data-severity="Critical"><td>SECM-0001</td><td>SQL injection in reporting endpoint</td><td>app.internal.corp</td><td><span class="severity critical">Critical</span></td><td>Open</td></tr><tr data-severity="High"><td>SECM-0014</td><td>Kerberoastable service account</td><td>CORP-LOCAL</td><td><span class="severity high">High</span></td><td>Open</td></tr><tr data-severity="Medium"><td>SECM-0021</td><td>Weak authentication configuration</td><td>api.checkout</td><td><span class="severity medium">Medium</span></td><td>Review</td></tr></tbody></table></article>
+                    <div id="finding-backdrop" class="drawer-backdrop" hidden></div><article id="finding-detail" class="app-card form-card finding-detail" hidden><div class="form-card-title"><h2 id="finding-detail-title">Finding detail</h2><button id="close-finding-detail" class="ghost-btn" type="button">Close</button></div><div id="finding-detail-body" class="finding-detail-grid"></div></article>
+                </section>
+
+                <section class="app-page" data-page="paths" hidden>
+                    <div class="page-heading"><div><h1>Attack Paths</h1><p>Multi-stage routes from exposed entry points to critical assets</p></div></div>
+                    <article class="app-card list-card"><div class="card-head"><h2 id="paths-card-title">Prioritized paths</h2><span id="paths-card-meta">4 modeled</span></div><div id="paths-card-body"><div class="data-row"><span class="row-index">1</span><div><div class="row-title">Public web → SQLi → service token → Domain Admin</div><div class="row-meta">6 hops · 92% confidence · 3 control gaps</div></div><span class="score">9.6</span></div><div class="data-row"><span class="row-index">2</span><div><div class="row-title">API deserialization → runtime shell → cloud IAM</div><div class="row-meta">4 hops · 87% confidence · 2 control gaps</div></div><span class="score">9.1</span></div><div class="data-row"><span class="row-index">3</span><div><div class="row-title">IDOR → customer export → cross-tenant PII</div><div class="row-meta">3 hops · 81% confidence · 2 control gaps</div></div><span class="score">8.4</span></div></div></article>
+                </section>
+
+                <section class="app-page" data-page="reports" hidden>
+                    <div class="page-heading"><div><h1>Reports</h1><p>Generate stakeholder-ready reports from live findings</p></div></div>
+                    <div class="reports-grid">
+                        <aside class="template-panel"><article class="app-card"><div class="card-head"><h2>Report template</h2></div><div class="template-list"><label class="template-option active"><input type="radio" name="report-template" value="Executive summary" checked><strong>Executive summary</strong><span>Risk posture, attack path narrative, business impact for leadership</span></label><label class="template-option"><input type="radio" name="report-template" value="Technical detail"><strong>Technical detail</strong><span>Full findings, evidence, reproduction, remediation</span></label><label class="template-option"><input type="radio" name="report-template" value="Compliance-mapped"><strong>Compliance-mapped</strong><span>Findings mapped to PCI DSS 11.4 &amp; ISO 27001 controls</span></label></div></article><article class="app-card" style="margin-top:12px"><div class="card-head"><h2>Scope</h2></div><div class="scope-list"><div><span>Engagement</span><b>Project Nightfall</b></div><div><span>Findings</span><b>47 · all severities</b></div><div><span>Period</span><b>Sep 2026</b></div></div><button id="export-report" class="export-btn" type="button">↧ &nbsp; Export PDF</button></article></aside>
+                        <article class="app-card report-paper"><div id="report-eyebrow" class="report-eyebrow">EXECUTIVE SUMMARY</div><h2 id="report-title">Project Nightfall — Security Test Report</h2><div class="report-meta">secmate · generated 2026-09-23 · CONFIDENTIAL</div><div class="report-rule"></div><p id="report-intro" class="report-copy">Between 1–18 September 2026, SecMate’s autonomous agents continuously tested Project Nightfall’s in-scope estate under machine-enforced rules of engagement. This summary is written for leadership; a technical appendix accompanies it.</p><div class="report-metrics"><div class="report-metric"><strong style="color:#ff4f6b">3</strong><span>Critical</span></div><div class="report-metric"><strong style="color:#ff914f">9</strong><span>High</span></div><div class="report-metric"><strong>47</strong><span>Total open</span></div><div class="report-metric"><strong>9.4d</strong><span>Mean fix</span></div></div><div class="report-section"><h3>Key business risk</h3><p class="report-copy">An unauthenticated attacker on the internal network can chain a SQL injection in the reporting application into a full Domain Admin compromise of CORP-LOCAL in six steps, placing HR, payroll and customer PII at risk.</p><h3>Recommendation</h3><p class="report-copy">Prioritize SECM-0001 and SECM-0014 within the current sprint. Both are low-effort fixes that remove the highest-impact attack paths.</p></div></article>
+                    </div>
+                </section>
+
+                <section class="app-page" data-page="governance" hidden>
+                    <div class="page-heading"><div><h1>Governance &amp; Standards</h1><p>Control mappings and policy coverage</p></div></div>
+                    <div class="metric-grid"><article class="metric-card"><div class="metric-label">Controls mapped</div><div class="metric-value">186</div><div class="metric-delta">Across 5 frameworks</div></article><article class="metric-card"><div class="metric-label">Coverage</div><div class="metric-value">84<small>%</small></div><div class="metric-delta"><span class="down">▲ 6%</span> this quarter</div></article><article class="metric-card"><div class="metric-label">Control gaps</div><div class="metric-value red">12</div><div class="metric-delta">3 critical</div></article><article class="metric-card"><div class="metric-label">Evidence current</div><div class="metric-value">93<small>%</small></div><div class="metric-delta">Last synced today</div></article></div>
+                </section>
+            </main>
+        </div>
+    </div>
+    <section id="presentation-overlay" class="presentation-overlay" hidden><div class="presentation-stage"><div class="presentation-head"><div><span class="presentation-kicker">SECMATE SECURITY BRIEFING</span><h2 id="presentation-title">Assessment summary</h2><p id="presentation-meta" class="row-meta"></p></div><button id="close-presentation" class="action-btn" type="button">Close</button></div><div id="presentation-content"></div></div></section>
+    <div id="toast" class="toast" role="status" hidden></div>
+</section>
+
+<script>
+const loginScreen = document.getElementById("login-screen");
+const workspace = document.getElementById("workspace");
+const loginForm = document.getElementById("login-form");
+const loginError = document.getElementById("login-error");
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const passwordToggle = document.getElementById("password-toggle");
+const toast = document.getElementById("toast");
+let toastTimer;
+
+function showToast(message) {
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.hidden = false;
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 3200);
+}
+
+function showPage(pageName) {
+    const detail = document.getElementById("finding-detail");
+    const backdrop = document.getElementById("finding-backdrop");
+    if (detail) detail.hidden = true;
+    if (backdrop) backdrop.hidden = true;
+    document.querySelectorAll(".app-page").forEach((page) => {
+        page.hidden = page.dataset.page !== pageName;
+    });
+    document.querySelectorAll("[data-page-target]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.pageTarget === pageName);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function openWorkspace() {
+    loginScreen.hidden = true;
+    workspace.hidden = false;
+    showPage("overview");
+    if (assessmentHistory.length) renderAssessmentIntelligence(assessmentHistory[0]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+loginForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    loginError.textContent = "";
+    if (!email.validity.valid || !password.value.trim()) {
+        loginError.textContent = "Enter a valid work email and password to continue.";
+        return;
+    }
+    openWorkspace();
+});
+
+document.getElementById("sso-button").addEventListener("click", openWorkspace);
+document.querySelector(".forgot").addEventListener("click", () => {
+    loginError.textContent = "Password recovery is managed by your organization administrator.";
+});
+document.getElementById("sign-out").addEventListener("click", () => {
+    workspace.hidden = true;
+    loginScreen.hidden = false;
+    password.value = "";
+    loginError.textContent = "";
+});
+
+passwordToggle.addEventListener("click", () => {
+    const reveal = password.type === "password";
+    password.type = reveal ? "text" : "password";
+    passwordToggle.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+});
+
+document.querySelectorAll("[data-page-target]").forEach((button) => {
+    button.addEventListener("click", () => showPage(button.dataset.pageTarget));
+});
+document.querySelectorAll("[data-go-page]").forEach((button) => {
+    button.addEventListener("click", () => showPage(button.dataset.goPage));
+});
+
+const onboardingForm = document.getElementById("onboarding-form");
+const onboardBack = document.getElementById("onboard-back");
+const onboardNext = document.getElementById("onboard-next");
+let onboardStep = 1;
+
+function renderOnboardStep(step) {
+    onboardStep = Math.max(1, Math.min(5, step));
+    document.querySelectorAll(".onboard-step").forEach((panel) => {
+        panel.hidden = Number(panel.dataset.step) !== onboardStep;
+    });
+    document.querySelectorAll("[data-step-target]").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.stepTarget) === onboardStep);
+    });
+    onboardBack.hidden = onboardStep === 1;
+    onboardNext.textContent = onboardStep === 5 ? "Create engagement" : "Continue";
+    if (onboardStep === 5) {
+        const formData = new FormData(onboardingForm);
+        document.getElementById("onboard-review").innerHTML = `
+            <div><span>Application</span><b>${formData.get("appName") || "—"}</b></div>
+            <div><span>Owner</span><b>${formData.get("owner") || "—"}</b></div>
+            <div><span>Environment</span><b>${formData.get("environment") || "—"}</b></div>
+            <div><span>Standards</span><b>ASVS · PCI DSS · MITRE</b></div>`;
+    }
+}
+
+document.querySelectorAll("[data-step-target]").forEach((button) => {
+    button.addEventListener("click", () => renderOnboardStep(Number(button.dataset.stepTarget)));
+});
+onboardBack.addEventListener("click", () => renderOnboardStep(onboardStep - 1));
+onboardNext.addEventListener("click", () => {
+    const currentPanel = document.querySelector(`.onboard-step[data-step="${onboardStep}"]`);
+    const invalid = [...currentPanel.querySelectorAll("[required]")].find((field) => !field.checkValidity());
+    if (invalid) {
+        invalid.reportValidity();
+        return;
+    }
+    if (onboardStep < 5) {
+        renderOnboardStep(onboardStep + 1);
+    } else {
+        showToast(`${document.getElementById("app-name").value} onboarded successfully.`);
+        showPage("engagements");
+        renderOnboardStep(1);
+    }
+});
+
+const assessmentForm = document.getElementById("assessment-form");
+const result = document.getElementById("result");
+const submit = document.getElementById("submit");
+const deepteamEnabled = document.getElementById("deepteam-enabled");
+const deepteamSettings = document.getElementById("deepteam-settings");
+const deepteamStatus = document.getElementById("deepteam-status");
+const deepteamTargetMode = document.getElementById("deepteam-target-mode");
+const deepteamEndpointField = document.getElementById("deepteam-endpoint-field");
+const deepteamTargetEndpoint = document.getElementById("deepteam-target-endpoint");
+let liveFindings = [];
+let currentAssessment = null;
+let deepteamReadiness = null;
+const HISTORY_KEY = "secmate.assessmentHistory.v1";
+let assessmentHistory = loadAssessmentHistory();
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    })[character]);
+}
+
+function asList(value) {
+    return Array.isArray(value) ? value : [];
+}
+
+function renderDeepTeamStatus() {
+    const status = deepteamReadiness || {};
+    let label = "Checking";
+    let state = "review";
+    if (!status.source_available) {
+        label = "Source missing";
+        state = "fail";
+    } else if (!status.dependencies_ready) {
+        label = "Install dependencies";
+    } else if (!status.openai_configured) {
+        label = "Needs model key";
+    } else if (deepteamTargetMode.value === "http" && !status.http_target_configured) {
+        label = "Needs target URL";
+    } else {
+        label = "Ready";
+        state = "pass";
+    }
+    deepteamStatus.textContent = label;
+    deepteamStatus.className = `gate-chip ${state}`;
+    deepteamStatus.title = status.note || "DeepTeam readiness";
+}
+
+async function refreshDeepTeamStatus() {
+    try {
+        const response = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "deepteam_status" })
+        });
+        const output = await response.json();
+        if (!response.ok || output.ok === false) throw new Error(output.error || "Status unavailable");
+        deepteamReadiness = output.deepteam || {};
+    } catch (error) {
+        deepteamReadiness = { source_available: false, note: error.message };
+    }
+    renderDeepTeamStatus();
+}
+
+deepteamEnabled.addEventListener("change", () => {
+    deepteamSettings.hidden = !deepteamEnabled.checked;
+    document.getElementById("workflow").disabled = deepteamEnabled.checked;
+    if (deepteamEnabled.checked) document.getElementById("workflow").value = "Combined Security Assessment";
+});
+function updateDeepTeamTargetFields() {
+    const usesHttp = deepteamTargetMode.value === "http";
+    deepteamEndpointField.hidden = !usesHttp;
+    deepteamTargetEndpoint.disabled = !usesHttp;
+    deepteamTargetEndpoint.required = usesHttp;
+    renderDeepTeamStatus();
+}
+
+deepteamTargetMode.addEventListener("change", updateDeepTeamTargetFields);
+updateDeepTeamTargetFields();
+refreshDeepTeamStatus();
+
+function loadAssessmentHistory() {
+    try {
+        return asList(JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"))
+            .filter((record) => record && record.assessment_id && record.status === "Completed")
+            .slice(0, 10);
+    } catch (_) {
+        return [];
+    }
+}
+
+function redactForStorage(record) {
+    const serialized = JSON.stringify(record).replace(
+        /\b(api[_-]?key|secret[_-]?key|password|token)\b\s*[:=]\s*(['"]?)([^\s,'";\\]{4,})\2/gi,
+        "$1=[REDACTED]"
+    );
+    const redacted = JSON.parse(serialized);
+    redacted.browser_storage_redacted = true;
+    return redacted;
+}
+
+function rememberAssessment(record) {
+    const safeRecord = redactForStorage(record);
+    assessmentHistory = [safeRecord, ...assessmentHistory.filter((item) => item.assessment_id !== record.assessment_id)].slice(0, 10);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(assessmentHistory));
+    updateComparisonControls();
+}
+
+function historyRecord(id) {
+    if (currentAssessment?.assessment_id === id) return currentAssessment;
+    return assessmentHistory.find((record) => record.assessment_id === id) || null;
+}
+
+function gateClass(gate) {
+    const value = String(gate || "Review").toLowerCase();
+    return ["pass", "review", "fail"].includes(value) ? value : "review";
+}
+
+function getDisplayFindings(record) {
+    const rawFindings = asList(record.vapt_findings);
+    const groups = asList(record.correlated_findings);
+    if (!groups.length) {
+        return rawFindings.map((finding) => ({ ...finding, occurrence_count: 1 }));
+    }
+    return groups.map((group) => {
+        const raw = rawFindings.find((finding) => finding.fingerprint === group.fingerprint) || {};
+        return { ...raw, ...group, target: group.target || raw.target || record.target };
+    });
+}
+
+function renderFindingDetail(finding) {
+    const provenance = finding.provenance || asList(finding.occurrences)[0]?.source || {};
+    const confidence = finding.confidence || {};
+    const span = finding.evidence_span || {};
+    document.getElementById("finding-detail-title").textContent = finding.title || "Security indicator";
+    document.getElementById("finding-detail-body").innerHTML = `
+        <div><label>Security context</label><p><span class="severity ${escapeHtml(String(finding.severity || "Info").toLowerCase())}">${escapeHtml(finding.severity || "Info")}</span><br><br>${escapeHtml(finding.description || "No description recorded.")}</p><label>Recommendation</label><p>${escapeHtml(finding.recommendation || "Analyst validation is required.")}</p></div>
+        <div><label>Evidence</label><p>${escapeHtml(finding.matched_text || finding.evidence || "No evidence excerpt recorded.")}</p><label>Provenance and confidence</label><p>Source: ${escapeHtml(provenance.source_type || "not recorded")} · ${escapeHtml(provenance.source_ref || "—")}<br>Confidence: ${escapeHtml(confidence.level || "not recorded")}${confidence.basis ? ` — ${escapeHtml(confidence.basis)}` : ""}<br>Evidence span: ${escapeHtml(span.start ?? "—")}:${escapeHtml(span.end ?? "—")} · Occurrences: ${escapeHtml(finding.occurrence_count || 1)}</p></div>`;
+    document.getElementById("finding-detail").hidden = false;
+    document.getElementById("finding-backdrop").hidden = false;
+    document.getElementById("finding-detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function renderAssessmentIntelligence(record) {
+    currentAssessment = record;
+    const findings = getDisplayFindings(record);
+    const posture = record.posture || {};
+    const testCases = asList(record.test_cases);
+    const matrix = asList(record.outcome_matrix);
+    const progress = asList(record.progress);
+    const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+    findings.forEach((finding) => { if (finding.severity in counts) counts[finding.severity] += 1; });
+    const criticalCount = counts.Critical;
+    const score = Number.isFinite(posture.score) ? posture.score : "—";
+
+    document.getElementById("data-mode").textContent = "✓ LIVE · ASSESSMENT DATA";
+    document.getElementById("presentation-mode").disabled = false;
+    document.getElementById("live-count").textContent = "1";
+    document.getElementById("finding-count").textContent = String(findings.length);
+    document.getElementById("path-count").textContent = String(matrix.length);
+
+    const metrics = [
+        ["metric-one", "Correlated findings", findings.length, `${record.vapt_indicator_count || 0} original indicator(s)`],
+        ["metric-two", "Critical indicators", criticalCount, criticalCount ? "Requires analyst validation" : "None observed"],
+        ["metric-three", "Adversarial tests", record.test_case_count || testCases.length, `${record.defended_count || 0} defended · ${record.review_required_count || 0} review`],
+        ["metric-four", "Posture score", score, `${posture.gate || "Review"} · ${record.overall_verdict || "Unknown"}`]
+    ];
+    metrics.forEach(([prefix, label, value, detail]) => {
+        document.getElementById(`${prefix}-label`).textContent = label;
+        document.getElementById(`${prefix}-value`).textContent = value;
+        document.getElementById(`${prefix}-detail`).textContent = detail;
+    });
+
+    const total = findings.length;
+    document.getElementById("severity-card-meta").textContent = `${total} unique indicator${total === 1 ? "" : "s"}`;
+    document.getElementById("severity-total").innerHTML = `${total}<small>UNIQUE</small>`;
+    const palette = { Critical: "#ff526e", High: "#ff8042", Medium: "#f5bc3c", Low: "#36d19a" };
+    document.getElementById("severity-legend").innerHTML = Object.entries(counts).map(([severity, count]) => `<div class="legend-row"><i class="legend-dot" style="background:${palette[severity]}"></i>${severity} <b>${count}</b></div>`).join("");
+    if (total) {
+        let cursor = 0;
+        const stops = Object.entries(counts).filter(([, count]) => count).map(([severity, count]) => {
+            const start = cursor;
+            cursor += (count / total) * 100;
+            return `${palette[severity]} ${start}% ${cursor}%`;
+        });
+        document.querySelector(".donut").style.background = `conic-gradient(${stops.join(",")})`;
+    } else {
+        document.querySelector(".donut").style.background = "#17304a";
+    }
+
+    document.getElementById("posture-card-title").textContent = "Explainable posture score";
+    document.getElementById("posture-card-meta").textContent = posture.model || "transparent scoring";
+    document.getElementById("posture-card-body").innerHTML = `<div class="score-row"><div><span class="gate-chip ${gateClass(posture.gate)}">${escapeHtml(posture.gate || "Review")}</span><div class="metric-value" style="margin-top:10px">${escapeHtml(score)}<small> /100</small></div><p class="row-meta">${escapeHtml(posture.rationale || "No posture rationale was returned.")}</p></div></div>${asList(posture.factors).map((factor) => `<div class="factor-line"><div><b>${escapeHtml(factor.label)}</b><small>${escapeHtml(factor.reason)}</small></div><span class="score">${Number(factor.impact) > 0 ? "+" : ""}${escapeHtml(factor.impact ?? 0)}</span></div>`).join("")}`;
+
+    document.getElementById("outcome-card-title").textContent = "Red Team vs Blue Team";
+    document.getElementById("outcome-card-meta").textContent = `${matrix.length} attack categor${matrix.length === 1 ? "y" : "ies"}`;
+    document.getElementById("outcome-card-body").innerHTML = matrix.length ? matrix.map((row, index) => `<div class="data-row"><span class="row-index">${index + 1}</span><div><div class="row-title">${escapeHtml(row.category)}</div><div class="row-meta">${escapeHtml(row.total)} tests · ${escapeHtml(row.defended)} defended · ${escapeHtml(row.requires_review)} review</div></div><span class="score">${escapeHtml(row.potential_bypass)} bypass</span></div>`).join("") : '<div class="data-row"><span class="row-index">—</span><div><div class="row-title">No Red/Blue cases for this workflow</div><div class="row-meta">The selected assessment ran evidence analysis only.</div></div><span></span></div>';
+
+    document.getElementById("activity-card-meta").textContent = record.assessment_id || "completed run";
+    document.getElementById("activity-card-body").innerHTML = progress.length ? progress.slice(-4).reverse().map((step) => `<div class="data-row"><span class="row-index">${step.status === "Completed" ? "✓" : "—"}</span><div><div class="row-title">${escapeHtml(String(step.stage || "stage").replaceAll("_", " "))}</div><div class="row-meta">${escapeHtml(step.detail || step.status)}${Number.isFinite(step.duration_ms) ? ` · ${escapeHtml(step.duration_ms)} ms` : ""}</div></div><span></span></div>`).join("") : '<div class="data-row"><span class="row-index">✓</span><div><div class="row-title">Assessment completed</div><div class="row-meta">No stage timing was returned.</div></div><span></span></div>';
+
+    liveFindings = findings;
+    document.getElementById("findings-body").innerHTML = findings.length ? findings.map((finding, index) => `<tr data-finding-index="${index}" data-severity="${escapeHtml(finding.severity || "Info")}"><td>${escapeHtml(finding.finding_id || finding.rule_id || "—")}</td><td>${escapeHtml(finding.title || "Security indicator")}</td><td>${escapeHtml(finding.target || record.target || "—")}</td><td><span class="severity ${escapeHtml(String(finding.severity || "Info").toLowerCase())}">${escapeHtml(finding.severity || "Info")}</span></td><td>View details →</td></tr>`).join("") : '<tr><td colspan="5">No evidence-backed indicators were produced for this assessment.</td></tr>';
+    document.getElementById("finding-detail").hidden = true;
+    document.getElementById("finding-backdrop").hidden = true;
+
+    document.getElementById("paths-card-title").textContent = "Attack vs Defense Replay";
+    document.getElementById("paths-card-meta").textContent = `${testCases.length} evaluated test case${testCases.length === 1 ? "" : "s"}`;
+    document.getElementById("paths-card-body").innerHTML = testCases.length ? testCases.map((testCase, index) => {
+        const relatedFinding = asList(record.vapt_findings).find((finding) => finding.provenance?.source_ref === testCase.id);
+        const prompt = String(testCase.prompt || "");
+        const shortPrompt = prompt.length > 105 ? `${prompt.slice(0, 105)}…` : prompt;
+        return `<div class="data-row"><span class="row-index">${index + 1}</span><div><div class="row-title">${escapeHtml(testCase.category)} → ${escapeHtml(testCase.verdict)}</div><div class="row-meta">Red: ${escapeHtml(shortPrompt)} · Blue: ${escapeHtml(testCase.explanation || "evaluated")}${relatedFinding ? ` · Finding: ${escapeHtml(relatedFinding.title)}` : ""}</div></div><span class="score">${escapeHtml(testCase.id)}</span></div>`;
+    }).join("") : '<div class="data-row"><span class="row-index">—</span><div><div class="row-title">No Red/Blue replay for this workflow</div><div class="row-meta">Run a Red Team–Blue Team or Combined assessment to populate the replay.</div></div><span></span></div>';
+
+    updateComparisonControls();
+}
+
+assessmentForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Running…";
+    result.textContent = deepteamEnabled.checked
+        ? "Running SecMate and DeepTeam assessment…"
+        : "Running SecMate assessment…";
+
+    const payload = Object.fromEntries(new FormData(assessmentForm).entries());
+    if (deepteamEnabled.checked) {
+        payload.action = "deepteam_assess";
+        payload.workflow = "Combined Security Assessment";
+        payload.deepteam = {
+            target_mode: deepteamTargetMode.value,
+            vulnerabilities: [...document.querySelectorAll('input[name="deepteamVulnerability"]:checked')].map((input) => input.value),
+            attacks: [...document.querySelectorAll('input[name="deepteamAttack"]:checked')].map((input) => input.value),
+            attacks_per_vulnerability_type: 1
+        };
+        if (deepteamTargetMode.value === "http") {
+            payload.deepteam.target_endpoint = deepteamTargetEndpoint.value.trim();
+        }
+    }
+    try {
+        const response = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) throw new Error(`Server returned an invalid response (${response.status}).`);
+        const output = await response.json();
+        if (!response.ok || output.ok === false) throw new Error(output.error || `Request failed (${response.status})`);
+        result.textContent = JSON.stringify(output, null, 2);
+        rememberAssessment(output);
+        renderAssessmentIntelligence(output);
+        showToast(`Assessment ${output.assessment_id} completed.`);
+    } catch (error) {
+        result.textContent = `Error: ${error.message}`;
+    } finally {
+        submit.disabled = false;
+        submit.textContent = "Run Assessment";
+    }
+});
+
+const findingSearch = document.getElementById("finding-search");
+const severityFilter = document.getElementById("severity-filter");
+
+function filterFindings() {
+    const query = findingSearch.value.trim().toLowerCase();
+    const severity = severityFilter.value;
+    document.querySelectorAll("#findings-body tr").forEach((row) => {
+        const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
+        const matchesSeverity = severity === "All severities" || row.dataset.severity === severity;
+        row.hidden = !(matchesQuery && matchesSeverity);
+    });
+}
+
+findingSearch.addEventListener("input", filterFindings);
+severityFilter.addEventListener("change", filterFindings);
+document.getElementById("findings-body").addEventListener("click", (event) => {
+    const row = event.target.closest("tr[data-finding-index]");
+    if (row) renderFindingDetail(liveFindings[Number(row.dataset.findingIndex)]);
+});
+document.getElementById("close-finding-detail").addEventListener("click", () => {
+    document.getElementById("finding-detail").hidden = true;
+    document.getElementById("finding-backdrop").hidden = true;
+});
+document.getElementById("finding-backdrop").addEventListener("click", () => {
+    document.getElementById("finding-detail").hidden = true;
+    document.getElementById("finding-backdrop").hidden = true;
+});
+
+function assessmentOption(record) {
+    return `<option value="${escapeHtml(record.assessment_id)}">${escapeHtml(record.assessment_id)} · ${escapeHtml(record.target)} · ${escapeHtml(record.created_at || "Completed")}</option>`;
+}
+
+function availableHistory() {
+    return currentAssessment
+        ? [currentAssessment, ...assessmentHistory.filter((item) => item.assessment_id !== currentAssessment.assessment_id)]
+        : assessmentHistory;
+}
+
+function updateComparisonControls() {
+    const records = availableHistory();
+    const panel = document.getElementById("comparison-panel");
+    panel.hidden = records.length < 2;
+    if (records.length < 2) return;
+    const baseline = document.getElementById("compare-baseline");
+    const candidate = document.getElementById("compare-candidate");
+    const baselineValue = baseline.value;
+    const candidateValue = candidate.value;
+    const options = records.map(assessmentOption).join("");
+    baseline.innerHTML = options;
+    candidate.innerHTML = options;
+    baseline.value = records.some((item) => item.assessment_id === baselineValue) ? baselineValue : records[1].assessment_id;
+    candidate.value = records.some((item) => item.assessment_id === candidateValue) ? candidateValue : records[0].assessment_id;
+}
+
+document.getElementById("run-comparison").addEventListener("click", async () => {
+    const baseline = historyRecord(document.getElementById("compare-baseline").value);
+    const candidate = historyRecord(document.getElementById("compare-candidate").value);
+    const comparisonResult = document.getElementById("comparison-result");
+    if (!baseline || !candidate || baseline.assessment_id === candidate.assessment_id) {
+        showToast("Select two different completed assessments.");
+        return;
+    }
+    comparisonResult.innerHTML = '<div class="row-meta">Comparing completed assessments…</div>';
+    try {
+        const response = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "compare", baseline, candidate })
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) throw new Error(`Server returned an invalid response (${response.status}).`);
+        const output = await response.json();
+        if (!response.ok || output.ok === false) throw new Error(output.error || `Comparison failed (${response.status}).`);
+        const comparison = output.comparison || {};
+        const categories = [
+            ["New findings", asList(comparison.new_findings)],
+            ["Resolved", asList(comparison.resolved_findings)],
+            ["Unchanged", asList(comparison.unchanged_findings)],
+            ["Severity changed", asList(comparison.severity_changed_findings)]
+        ];
+        comparisonResult.innerHTML = `<div class="metric-grid">${categories.map(([label, items]) => `<article class="metric-card"><div class="metric-label">${escapeHtml(label)}</div><div class="metric-value">${items.length}</div><div class="metric-delta">deterministic fingerprint comparison</div></article>`).join("")}</div><article class="app-card list-card"><div class="card-head"><h2>Regression summary</h2><span>${escapeHtml(comparison.baseline_assessment_id)} → ${escapeHtml(comparison.candidate_assessment_id)}</span></div><div class="data-row"><span class="row-index">◇</span><div><div class="row-title">Verdict</div><div class="row-meta">${escapeHtml(comparison.verdict?.before || "—")} → ${escapeHtml(comparison.verdict?.after || "—")}</div></div><span></span></div><div class="data-row"><span class="row-index">#</span><div><div class="row-title">Posture score</div><div class="row-meta">${escapeHtml(comparison.posture_score?.before ?? "—")} → ${escapeHtml(comparison.posture_score?.after ?? "—")}</div></div><span class="score">${Number(comparison.posture_score?.delta) > 0 ? "+" : ""}${escapeHtml(comparison.posture_score?.delta ?? "—")}</span></div><div class="data-row"><span class="row-index">◎</span><div><div class="row-title">Defense change</div><div class="row-meta">Defended ${escapeHtml(comparison.red_blue?.defended_delta ?? 0)} · Review ${escapeHtml(comparison.red_blue?.review_delta ?? 0)} · Bypass ${escapeHtml(comparison.red_blue?.bypass_delta ?? 0)}</div></div><span></span></div></article>`;
+    } catch (error) {
+        comparisonResult.innerHTML = `<div class="row-meta">Comparison error: ${escapeHtml(error.message)}</div>`;
+    }
+});
+
+function openPresentation() {
+    if (!currentAssessment) {
+        showToast("Run an assessment before opening presentation mode.");
+        return;
+    }
+    const record = currentAssessment;
+    const posture = record.posture || {};
+    const findings = getDisplayFindings(record);
+    const topFinding = findings[0];
+    document.getElementById("presentation-title").textContent = `${record.target} security assessment`;
+    document.getElementById("presentation-meta").textContent = `${record.assessment_id} · ${record.assessment_type} · ${record.intensity} · ${record.created_at}`;
+    document.getElementById("presentation-content").innerHTML = `<div class="presentation-grid"><article class="metric-card"><div class="metric-label">Posture score</div><div class="metric-value">${escapeHtml(posture.score ?? "—")}<small> /100</small></div><div class="metric-delta">${escapeHtml(posture.label || "Decision pending")}</div></article><article class="metric-card"><div class="metric-label">Security gate</div><div class="metric-value">${escapeHtml(posture.gate || "Review")}</div><div class="metric-delta">${escapeHtml(record.overall_verdict || "Unknown")}</div></article><article class="metric-card"><div class="metric-label">Unique findings</div><div class="metric-value">${findings.length}</div><div class="metric-delta">${escapeHtml(record.vapt_indicator_count || 0)} original indicators</div></article><article class="metric-card"><div class="metric-label">Defense result</div><div class="metric-value">${escapeHtml(record.defended_count || 0)}<small> /${escapeHtml(record.test_case_count || 0)}</small></div><div class="metric-delta">adversarial tests defended</div></article></div><div class="presentation-summary"><article class="app-card"><div class="card-head"><h2>Decision explanation</h2><span class="gate-chip ${gateClass(posture.gate)}">${escapeHtml(posture.gate || "Review")}</span></div><div class="card-body"><p class="report-copy">${escapeHtml(posture.rationale || "No posture rationale was returned.")}</p>${asList(posture.factors).slice(0, 4).map((factor) => `<div class="factor-line"><div><b>${escapeHtml(factor.label)}</b><small>${escapeHtml(factor.reason)}</small></div><span class="score">${escapeHtml(factor.impact ?? 0)}</span></div>`).join("")}</div></article><article class="app-card"><div class="card-head"><h2>Priority action</h2><span>analyst briefing</span></div><div class="card-body"><h3>${escapeHtml(topFinding?.title || "No evidence-backed finding")}</h3><p class="report-copy">${escapeHtml(topFinding?.recommendation || "Review assessment coverage and ambiguous outcomes before approval.")}</p><p class="row-meta">${topFinding ? `${escapeHtml(topFinding.severity)} · ${escapeHtml(topFinding.finding_id || topFinding.rule_id || "indicator")}` : "No VAPT indicator generated"}</p></div></article></div>`;
+    document.getElementById("presentation-overlay").hidden = false;
+}
+
+document.getElementById("presentation-mode").addEventListener("click", openPresentation);
+document.getElementById("close-presentation").addEventListener("click", () => {
+    document.getElementById("presentation-overlay").hidden = true;
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    document.getElementById("presentation-overlay").hidden = true;
+    document.getElementById("finding-detail").hidden = true;
+    document.getElementById("finding-backdrop").hidden = true;
+});
+
+updateComparisonControls();
+
+const reportCopy = {
+    "Executive summary": {
+        eyebrow: "EXECUTIVE SUMMARY",
+        title: "Project Nightfall — Security Test Report",
+        intro: "Between 1–18 September 2026, SecMate’s autonomous agents continuously tested Project Nightfall’s in-scope estate under machine-enforced rules of engagement. This summary is written for leadership; a technical appendix accompanies it."
+    },
+    "Technical detail": {
+        eyebrow: "TECHNICAL DETAIL",
+        title: "Project Nightfall — Technical Findings",
+        intro: "This appendix documents reproducible evidence, affected components, attack preconditions and recommended fixes for the 47 open findings identified during the engagement."
+    },
+    "Compliance-mapped": {
+        eyebrow: "COMPLIANCE MAPPING",
+        title: "Project Nightfall — Control Assurance Report",
+        intro: "Findings are mapped to PCI DSS 4.0 requirement 11.4, ISO 27001 Annex A controls, OWASP ASVS and relevant MITRE ATT&CK techniques for audit traceability."
+    }
+};
+
+document.querySelectorAll('input[name="report-template"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+        document.querySelectorAll(".template-option").forEach((option) => option.classList.remove("active"));
+        radio.closest(".template-option").classList.add("active");
+        const copy = reportCopy[radio.value];
+        document.getElementById("report-eyebrow").textContent = copy.eyebrow;
+        document.getElementById("report-title").textContent = copy.title;
+        document.getElementById("report-intro").textContent = copy.intro;
+    });
+});
+
+document.getElementById("export-report").addEventListener("click", () => window.print());
+
+const canvas = document.getElementById("mesh");
+const context = canvas.getContext("2d");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let meshFrame;
+
+function drawMesh(timestamp = 0) {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.floor(rect.width * ratio));
+    const height = Math.max(1, Math.floor(rect.height * ratio));
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, rect.width, rect.height);
+    const cols = Math.max(34, Math.round(rect.width / 22));
+    const rows = 19;
+    const time = reduceMotion ? .8 : timestamp * .00018;
+    const points = [];
+
+    for (let row = 0; row < rows; row += 1) {
+        const depth = row / (rows - 1);
+        const rowPoints = [];
+        for (let col = 0; col <= cols; col += 1) {
+            const progress = col / cols;
+            const x = progress * rect.width;
+            const ridge = Math.sin(progress * 9.2 + time + row * .09) * (19 + depth * 14);
+            const swell = Math.sin(progress * 3.2 - time * .65 + row * .17) * (25 + depth * 20);
+            const y = rect.height * .22 + depth * rect.height * .73 + ridge + swell;
+            rowPoints.push({ x, y });
+        }
+        points.push(rowPoints);
+    }
+
+    context.lineWidth = .65;
+    for (let row = 0; row < rows; row += 1) {
+        const alpha = .06 + (row / rows) * .24;
+        context.beginPath();
+        points[row].forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+        context.strokeStyle = `rgba(0, 148, 255, ${alpha})`;
+        context.stroke();
+    }
+
+    for (let col = 0; col <= cols; col += 1) {
+        context.beginPath();
+        for (let row = 0; row < rows; row += 1) {
+            const point = points[row][col];
+            row ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y);
+        }
+        context.strokeStyle = "rgba(0, 130, 232, .11)";
+        context.stroke();
+    }
+
+    context.shadowColor = "rgba(0, 174, 255, .8)";
+    context.shadowBlur = 5;
+    points.forEach((rowPoints, row) => {
+        const radius = .6 + (row / rows) * 1.15;
+        context.fillStyle = `rgba(14, 174, 255, ${.24 + row / rows * .55})`;
+        rowPoints.forEach((point) => {
+            context.beginPath();
+            context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+            context.fill();
+        });
+    });
+    context.shadowBlur = 0;
+
+    if (!reduceMotion) meshFrame = requestAnimationFrame(drawMesh);
+}
+
+drawMesh();
+window.addEventListener("resize", () => {
+    if (reduceMotion) drawMesh();
+});
+window.addEventListener("beforeunload", () => cancelAnimationFrame(meshFrame));
+</script>
+</body>
+</html>

@@ -1,18 +1,26 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "excludeFiles": "{.npm-cache/**,.vercel-global/**,.pytest_cache/**,.streamlit/**,app/**,config/**,data/**,reports/**,tests/**,index.html,README.md,.vercel-ca.pem,**/.env*}"
+      }
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api",
-      "dest": "api/index.py"
+      "src": "/api/?",
+      "dest": "/api/index.py"
     },
     {
-      "src": "/(.*)",
+      "src": "/",
       "dest": "/index.html"
     }
   ]

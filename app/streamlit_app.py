@@ -22,7 +22,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from core import database, engine
+from core import database, engine, intelligence
 from vapt import security_decision
 
 CSS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "styles.css")
@@ -226,11 +226,23 @@ def login_page():
 NAV_ITEMS = [
     ("Dashboard", "◉"),
     ("New Assessment", "▣"),
+    ("Assessment History", "◷"),
     ("VAPT Findings", "⌁"),
-    ("Attack Paths", "⌁"),
+    ("Attack Relationships", "⌁"),
     ("Reports", "▤"),
     ("Settings", "⚙"),
 ]
+
+
+def sanitized_export(value):
+    """Redact credential-like values from analyst downloads without mutating records."""
+    if isinstance(value, dict):
+        return {key: sanitized_export(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitized_export(item) for item in value]
+    if isinstance(value, str):
+        return intelligence.redact_sensitive_text(value)
+    return value
 
 
 def sidebar():
@@ -252,7 +264,7 @@ def sidebar():
 
         st.markdown('<div class="sm-side-section sm-side-bottom">GOVERNANCE & STANDARDS</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="sm-side-user"><div class="sm-avatar">SS</div><div><b>Security Operator</b><span>Enterprise workspace</span></div></div>',
+            '<div class="sm-side-user"><div class="sm-avatar">◇</div><div><b>Security Operator</b><span>Enterprise workspace</span></div></div>',
             unsafe_allow_html=True,
         )
         if st.button("↩ Sign Out", use_container_width=True, type="secondary"):
@@ -274,8 +286,8 @@ def dashboard_page():
 
     st.markdown(
         """<div class="sm-page-head">
-            <div><h1>Risk Posture</h1>
-            <div class="sm-page-sub">Continuous security testing across your organization's attack surface</div></div>
+            <div><h1>Security Posture</h1>
+            <div class="sm-page-sub">Explainable decisions from completed SecMate assessments</div></div>
             <div class="sm-project-pill"><span></span> Project SecMate <b>• active</b></div>
         </div>""",
         unsafe_allow_html=True,
@@ -319,16 +331,17 @@ def dashboard_page():
             empty_state("No findings yet. Run an assessment with approved evidence.", icon="•")
 
     with right:
-        st.markdown('<div class="sm-card-title">Risk trend <span>Assessment history</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sm-card-title">Posture trend <span>Assessment history</span></div>', unsafe_allow_html=True)
         trend_rows = []
         for idx, r in enumerate(reversed(records[-10:]), start=1):
-            score = sum({"Critical":4,"High":3,"Medium":2,"Low":1}.get(f.get("severity"),0) for f in r.get("vapt_findings", []))
-            trend_rows.append({"Run": idx, "Risk score": score})
+            score = r.get("posture", {}).get("score")
+            if isinstance(score, (int, float)):
+                trend_rows.append({"Run": idx, "Posture score": score})
         if trend_rows:
             try:
                 import plotly.express as px
                 df = pd.DataFrame(trend_rows)
-                fig = px.line(df, x="Run", y="Risk score", markers=True)
+                fig = px.line(df, x="Run", y="Posture score", markers=True)
                 fig.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                     font_color="#94A3B8", showlegend=False,
@@ -344,17 +357,22 @@ def dashboard_page():
     st.markdown('<div class="sm-section-gap"></div>', unsafe_allow_html=True)
     a, b = st.columns(2, gap="large")
     with a:
-        st.markdown('<div class="sm-card-title">Top attack paths <span>Derived from stored findings</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sm-card-title">Assessment relationships <span>Latest evidence-backed links</span></div>', unsafe_allow_html=True)
         if records:
-            findings = [f for r in records for f in r.get("vapt_findings", [])]
-            if findings:
-                for i, f in enumerate(findings[:4], 1):
+            latest = records[0]
+            graph = latest.get("relationship_graph", {})
+            nodes = {node.get("id"): node for node in graph.get("nodes", [])}
+            edges = graph.get("edges", [])
+            if edges:
+                for i, edge in enumerate(edges[:4], 1):
+                    source = nodes.get(edge.get("from"), {})
+                    destination = nodes.get(edge.get("to"), {})
                     st.markdown(
-                        f'<div class="sm-list-row"><span class="rank">{i}</span><div><b>{f.get("title","Security indicator")}</b><small>{f.get("severity","Info")} · {f.get("target","Assessment target")}</small></div><span class="chev">›</span></div>',
+                        f'<div class="sm-list-row"><span class="rank">{i}</span><div><b>{source.get("label","Node")} → {destination.get("label","Node")}</b><small>{edge.get("relationship","related to")}</small></div><span class="chev">›</span></div>',
                         unsafe_allow_html=True,
                     )
             else:
-                empty_state("No stored findings to build an attack path view.")
+                empty_state("The latest assessment contains no relationship edges.")
         else:
             empty_state("No assessment data yet.")
     with b:
@@ -387,11 +405,20 @@ def render_test_case(tc: dict):
 def render_finding(f: dict):
     with st.expander(f"{f['title']} — {f['severity']}"):
         st.markdown(severity_badge(f["severity"]), unsafe_allow_html=True)
+        st.markdown(f"**Finding ID:** `{f.get('finding_id', 'Legacy record')}`")
         st.markdown(f"**Description:** {f['description']}")
         st.markdown("**Evidence:**")
         st.markdown(f'<div class="sm-mono">{f["evidence"]}</div>', unsafe_allow_html=True)
         st.markdown(f"**Recommendation:** {f['recommendation']}")
-        st.caption(f"Status: {f.get('status', 'Unconfirmed')}")
+        provenance = f.get("provenance", {})
+        confidence = f.get("confidence", {})
+        span = f.get("evidence_span", {})
+        st.caption(
+            f"Status: {f.get('status', 'Unconfirmed')} · "
+            f"Source: {provenance.get('source_type', 'not recorded')} / {provenance.get('source_ref', '—')} · "
+            f"Confidence: {confidence.get('level', 'not recorded')} · "
+            f"Evidence span: {span.get('start', '—')}:{span.get('end', '—')}"
+        )
 
 
 def render_result(record: dict):
@@ -414,24 +441,90 @@ def render_result(record: dict):
         "against a simulated target — this does NOT represent real-world exploit verification."
     )
 
+    posture = record.get("posture", {})
+    st.subheader("Explainable Security Posture")
+    p1, p2, p3 = st.columns(3)
+    p1.metric("Posture score", f"{posture.get('score', '—')} / 100")
+    p2.metric("Security gate", posture.get("gate", "Review"))
+    p3.metric("Decision model", posture.get("model", "Legacy record"))
+    st.write(posture.get("rationale", "This legacy assessment does not contain posture rationale."))
+    factors = posture.get("factors", [])
+    if factors:
+        st.dataframe(
+            pd.DataFrame([
+                {
+                    "Factor": factor.get("label"),
+                    "Impact": factor.get("impact"),
+                    "Reason": factor.get("reason"),
+                    "Sources": ", ".join(filter(None, factor.get("source_refs", []))),
+                }
+                for factor in factors
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    if record.get("progress"):
+        st.subheader("Server-Reported Execution Status")
+        st.dataframe(
+            pd.DataFrame([
+                {
+                    "Stage": step.get("stage", "").replace("_", " ").title(),
+                    "Status": step.get("status"),
+                    "Duration (ms)": step.get("duration_ms"),
+                    "Detail": step.get("detail"),
+                }
+                for step in record["progress"]
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    if record.get("outcome_matrix"):
+        st.subheader("Red Team vs Blue Team Outcome Matrix")
+        st.dataframe(pd.DataFrame(record["outcome_matrix"]), use_container_width=True, hide_index=True)
+
     if record["test_cases"]:
         st.subheader("Red Team / Blue Team Results")
         for tc in record["test_cases"]:
             render_test_case(tc)
 
     if record["vapt_findings"]:
-        st.subheader("VAPT Findings")
+        st.subheader("Evidence Explorer")
+        correlated = record.get("correlated_findings", [])
+        if correlated:
+            st.caption(
+                f"{len(record['vapt_findings'])} original indicator(s) correlated into "
+                f"{len(correlated)} unique finding(s)."
+            )
+        unique_fingerprints = set()
         for f in record["vapt_findings"]:
+            fingerprint = f.get("fingerprint")
+            if fingerprint and fingerprint in unique_fingerprints:
+                continue
+            unique_fingerprints.add(fingerprint)
             render_finding(f)
     elif record["assessment_type"] in (engine.WORKFLOW_VAPT, engine.WORKFLOW_COMBINED):
         empty_state("No VAPT indicators were generated for this run.")
 
+    if record.get("mappings"):
+        st.subheader("MITRE / OWASP / CWE Mappings")
+        st.dataframe(pd.DataFrame(record["mappings"]), use_container_width=True, hide_index=True)
+
+    export_record = sanitized_export(record)
     st.download_button(
-        "⬇ Download JSON Report",
-        data=json.dumps(record, indent=2),
+        "⬇ Download Redacted JSON Report",
+        data=json.dumps(export_record, indent=2),
         file_name=f"{record['assessment_id']}_report.json",
         mime="application/json",
     )
+    if record.get("replay"):
+        st.download_button(
+            "⬇ Download Reproducibility Package",
+            data=json.dumps(record["replay"], indent=2),
+            file_name=f"{record['assessment_id']}_replay.json",
+            mime="application/json",
+        )
 
 
 def assessment_operations_page():
@@ -519,6 +612,49 @@ def render_history_tab():
         empty_state("No assessments have been run yet.")
         return
 
+    st.subheader("Assessment Comparison & Regression Tracking")
+    if len(all_records) < 2:
+        st.info("Run at least two assessments to compare regressions.")
+    else:
+        record_ids = [record["assessment_id"] for record in all_records]
+        compare_left, compare_right = st.columns(2)
+        with compare_left:
+            baseline_id = st.selectbox("Baseline assessment", record_ids, index=1, key="compare_baseline")
+        with compare_right:
+            candidate_id = st.selectbox("Candidate assessment", record_ids, index=0, key="compare_candidate")
+        if baseline_id == candidate_id:
+            st.warning("Choose two different completed assessments.")
+        elif st.button("Compare assessments", key="run_comparison"):
+            baseline = next(record for record in all_records if record["assessment_id"] == baseline_id)
+            candidate = next(record for record in all_records if record["assessment_id"] == candidate_id)
+            try:
+                comparison = intelligence.compare_assessments(baseline, candidate)
+                d1, d2, d3, d4 = st.columns(4)
+                d1.metric("New", len(comparison["new_findings"]))
+                d2.metric("Resolved", len(comparison["resolved_findings"]))
+                d3.metric("Unchanged", len(comparison["unchanged_findings"]))
+                d4.metric("Severity changed", len(comparison["severity_changed_findings"]))
+                st.write(
+                    f"**Verdict:** {comparison['verdict']['before']} → {comparison['verdict']['after']} · "
+                    f"**Posture score:** {comparison['posture_score']['before']} → "
+                    f"{comparison['posture_score']['after']} (Δ {comparison['posture_score']['delta']})"
+                )
+                for label, key in (
+                    ("New findings", "new_findings"),
+                    ("Resolved findings", "resolved_findings"),
+                    ("Unchanged findings", "unchanged_findings"),
+                    ("Severity changes", "severity_changed_findings"),
+                ):
+                    with st.expander(f"{label} ({len(comparison[key])})"):
+                        if comparison[key]:
+                            st.json(comparison[key])
+                        else:
+                            st.caption("None")
+            except ValueError as exc:
+                st.error(f"Could not compare assessments: {exc}")
+
+    st.markdown('<hr class="sm-divider"/>', unsafe_allow_html=True)
+
     f1, f2, f3 = st.columns([2, 1, 1])
     with f1:
         query = st.text_input("Search by Assessment ID or target", key="hist_search")
@@ -547,8 +683,8 @@ def render_history_tab():
     st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
 
     st.download_button(
-        "⬇ Export Filtered History (JSON)",
-        data=json.dumps(filtered, indent=2),
+        "⬇ Export Redacted History (JSON)",
+        data=json.dumps(sanitized_export(filtered), indent=2),
         file_name="secmate_filtered_history.json",
         mime="application/json",
         key="export_filtered",
@@ -598,8 +734,8 @@ def render_history_tab():
                 st.error(f"Failed to update review: {e}")
     with export_col:
         st.download_button(
-            "⬇ Export This Assessment",
-            data=json.dumps(record, indent=2),
+            "⬇ Export Redacted Assessment",
+            data=json.dumps(sanitized_export(record), indent=2),
             file_name=f"{selected_id}_report.json",
             mime="application/json",
             use_container_width=True,
@@ -648,13 +784,24 @@ def vapt_findings_page():
         st.error(f"Could not load findings: {e}")
         return
 
-    all_findings = []
+    finding_groups = {}
     for r in records:
         for f in r.get("vapt_findings", []):
             enriched = dict(f)
             enriched["related_assessment_id"] = enriched.get("related_assessment_id") or r["assessment_id"]
             enriched["target"] = enriched.get("target") or r["target"]
-            all_findings.append(enriched)
+            fingerprint = enriched.get("fingerprint") or intelligence.finding_fingerprint(enriched)
+            if fingerprint not in finding_groups:
+                enriched["fingerprint"] = fingerprint
+                enriched["assessment_ids"] = []
+                enriched["occurrence_count"] = 0
+                finding_groups[fingerprint] = enriched
+            group = finding_groups[fingerprint]
+            group["occurrence_count"] += 1
+            if r["assessment_id"] not in group["assessment_ids"]:
+                group["assessment_ids"].append(r["assessment_id"])
+
+    all_findings = list(finding_groups.values())
 
     if not all_findings:
         empty_state("No findings recorded yet. Run a VAPT or Combined assessment with approved evidence.", icon="🔍")
@@ -682,7 +829,8 @@ def vapt_findings_page():
             "CVSS": f.get("cvss","—"),
             "Asset": f.get("target","—"),
             "Status": f.get("status","Open"),
-            "Assessment": f.get("related_assessment_id","—"),
+            "Occurrences": f.get("occurrence_count", 1),
+            "Assessments": len(f.get("assessment_ids", [])),
         })
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True, height=min(520, 120 + len(rows)*42))
 
@@ -690,23 +838,32 @@ def vapt_findings_page():
     for f in filtered:
         with st.expander(f'{f.get("severity","Info").upper()} · {f.get("title","Security indicator")}'):
             st.markdown(severity_badge(f["severity"]), unsafe_allow_html=True)
-            st.markdown(f"**Related assessment:** `{f['related_assessment_id']}`")
+            st.markdown(f"**Related assessments:** `{', '.join(f.get('assessment_ids', []))}`")
             st.markdown(f"**Description:** {f.get('description','')}")
             st.markdown("**Evidence:**")
             st.markdown(f'<div class="sm-mono">{f.get("evidence","")}</div>', unsafe_allow_html=True)
             st.markdown(f"**Recommendation:** {f.get('recommendation','')}")
-            st.caption(f"Validation status: {f.get('status', 'Rule-Based Indicator (Unconfirmed)')}")
+            provenance = f.get("provenance", {})
+            confidence = f.get("confidence", {})
+            span = f.get("evidence_span", {})
+            st.caption(
+                f"Validation status: {f.get('status', 'Rule-Based Indicator (Unconfirmed)')} · "
+                f"Source: {provenance.get('source_type', 'not recorded')} / {provenance.get('source_ref', '—')} · "
+                f"Confidence: {confidence.get('level', 'not recorded')} · "
+                f"Span: {span.get('start', '—')}:{span.get('end', '—')} · "
+                f"Occurrences: {f.get('occurrence_count', 1)}"
+            )
 
 
 # ============================================================
 # Reports page
 # ============================================================
 
-def attack_paths_page():
+def attack_relationships_page():
     st.markdown(
         """<div class="sm-page-head">
-            <div><h1>Attack Paths</h1>
-            <div class="sm-page-sub">Chain related security indicators into reviewable paths from exposure to impact.</div></div>
+            <div><h1>Assessment Relationships</h1>
+            <div class="sm-page-sub">Inspect evidence-backed links between targets, tests, and findings.</div></div>
             <div class="sm-project-pill"><span></span> Project SecMate <b>• active</b></div>
         </div>""",
         unsafe_allow_html=True,
@@ -714,36 +871,37 @@ def attack_paths_page():
     try:
         records = database.get_all_assessments()
     except database.DatabaseError as e:
-        st.error(f"Could not load attack paths: {e}")
+        st.error(f"Could not load assessment relationships: {e}")
         return
-    findings = [dict(f, target=f.get("target") or r["target"]) for r in records for f in r.get("vapt_findings", [])]
-    if not findings:
-        empty_state("No attack-path candidates yet. Run an assessment with approved evidence first.", icon="⛓")
+    if not records:
+        empty_state("No relationship graph is available. Run an assessment first.", icon="⛓")
         return
-
-    left, right = st.columns([1.8, 0.9], gap="large")
-    with left:
-        st.markdown('<div class="sm-graph-card"><div class="sm-card-title">Assessment path <span>candidate chain from stored indicators</span></div>', unsafe_allow_html=True)
-        st.markdown('<div class="sm-path-node blue"><b>External / application exposure</b><small>Entry point from assessed target</small></div>', unsafe_allow_html=True)
-        for idx, f in enumerate(findings[:5]):
-            cls = "red" if f.get("severity") in ("Critical","High") else "amber"
-            st.markdown(f'<div class="sm-path-line"></div><div class="sm-path-node {cls}"><b>{f.get("title","Security indicator")}</b><small>{f.get("severity","Info")} · {f.get("target","")}</small></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    with right:
-        st.markdown('<div class="sm-card-title">Impact <span>Review context</span></div>', unsafe_allow_html=True)
-        top = findings[0]
-        st.markdown(f'<div class="sm-impact-card"><span>Highest observed severity</span><strong>{top.get("severity","Info")}</strong><small>Indicators remain unconfirmed until analyst validation.</small></div>', unsafe_allow_html=True)
-        st.markdown('<div class="sm-card-title">Break the chain <span>Suggested review focus</span></div>', unsafe_allow_html=True)
-        for f in findings[:3]:
-            st.markdown(f'<div class="sm-review-item"><span>●</span><div><b>{f.get("title","Security indicator")}</b><small>Validate evidence and affected asset</small></div></div>', unsafe_allow_html=True)
+    selected_id = st.selectbox("Assessment", [record["assessment_id"] for record in records], key="relationship_assessment")
+    record = next(item for item in records if item["assessment_id"] == selected_id)
+    graph = record.get("relationship_graph", {})
+    nodes = {node.get("id"): node for node in graph.get("nodes", [])}
+    edges = graph.get("edges", [])
+    st.info(graph.get("disclaimer", "Relationships represent assessment observations, not confirmed exploitability."))
+    if not edges:
+        empty_state("This assessment contains no reviewable relationships.", icon="⛓")
+        return
+    for edge in edges:
+        source = nodes.get(edge.get("from"), {"label": edge.get("from"), "type": "unknown"})
+        destination = nodes.get(edge.get("to"), {"label": edge.get("to"), "type": "unknown"})
+        left, relation, right = st.columns([2, 1, 2])
+        left.markdown(f"**{source.get('label', 'Unknown')}**  \n`{source.get('type', 'node')}`")
+        relation.markdown(f"→ **{edge.get('relationship', 'related to')}** →")
+        right.markdown(
+            f"**{destination.get('label', 'Unknown')}**  \n"
+            f"`{destination.get('type', 'node')}` · {destination.get('status', 'observed')}"
+        )
 
 def reports_page():
     st.title("Reports")
     st.markdown(
-        '<div class="sm-subtitle">Saved assessment reports, generated from actual stored assessment records.</div>',
+        '<div class="sm-subtitle">Executive, analyst, and framework views generated from actual stored assessment records.</div>',
         unsafe_allow_html=True,
     )
-    demo_banner()
 
     try:
         records = database.get_all_assessments()
@@ -755,34 +913,82 @@ def reports_page():
         empty_state("No reports available yet. Run an assessment to generate one.", icon="📄")
         return
 
-    st.download_button(
-        "⬇ Download All Reports (JSON)",
-        data=json.dumps(records, indent=2),
-        file_name="secmate_all_reports.json",
-        mime="application/json",
-    )
+    selected_id = st.selectbox("Assessment", [record["assessment_id"] for record in records], key="report_assessment")
+    record = next(item for item in records if item["assessment_id"] == selected_id)
+    posture = record.get("posture", {})
+    correlated = record.get("correlated_findings", [])
 
-    st.markdown('<hr class="sm-divider"/>', unsafe_allow_html=True)
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Posture score", f"{posture.get('score', '—')} / 100")
+    r2.metric("Security gate", posture.get("gate", "Review"))
+    r3.metric("Unique findings", len(correlated) or len(record.get("vapt_findings", [])))
+    r4.metric("Test cases", record.get("test_case_count", 0))
 
-    for r in records:
-        with st.expander(f"{r['assessment_id']} — {r['target']} ({r['created_at']})"):
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.markdown(f"**Type:** {r['assessment_type']}")
-                st.markdown(f"**Intensity:** {r['intensity']}")
-            with c2:
-                st.markdown(f"**Verdict:** {r['overall_verdict']}")
-                st.markdown(f"**Test Cases:** {r['test_case_count']}")
-            with c3:
-                st.markdown(f"**VAPT Indicators:** {r['vapt_indicator_count']}")
-                st.markdown(f"**Review Status:** {r['review_status']}")
+    executive, analyst, frameworks = st.tabs(["Executive summary", "Analyst detail", "Framework mappings"])
+    with executive:
+        st.subheader(f"{record['target']} — Executive Security Summary")
+        st.caption(f"{record['assessment_id']} · {record['created_at']} · CONFIDENTIAL")
+        st.write(
+            f"SecMate completed a **{record['assessment_type']}** at **{record['intensity']}** intensity. "
+            f"The security gate is **{posture.get('gate', 'Review')}** and the engine verdict is "
+            f"**{record.get('overall_verdict', 'Unknown')}**."
+        )
+        st.markdown("#### Decision basis")
+        st.write(posture.get("rationale", "This legacy assessment does not include an explainable posture rationale."))
+        for factor in posture.get("factors", []):
+            st.write(f"- **{factor.get('label')}** ({factor.get('impact', 0)}): {factor.get('reason')}")
+        st.markdown("#### Management recommendation")
+        if correlated:
+            top = correlated[0]
+            st.write(
+                f"Prioritize analyst validation of **{top.get('severity', 'Info')} — {top.get('title', 'Security indicator')}**. "
+                f"{top.get('recommendation') or 'Determine the affected control and remediation owner.'}"
+            )
+        else:
+            st.write("No VAPT indicators were generated. Confirm that assessment coverage and any ambiguous test outcomes are acceptable before approval.")
 
+    with analyst:
+        st.subheader("Technical findings and evidence")
+        if record.get("vapt_findings"):
+            seen = set()
+            for finding in record["vapt_findings"]:
+                if finding.get("fingerprint") in seen:
+                    continue
+                seen.add(finding.get("fingerprint"))
+                render_finding(finding)
+        else:
+            empty_state("No VAPT indicators were generated for this assessment.")
+        st.subheader("Red Team / Blue Team outcomes")
+        if record.get("outcome_matrix"):
+            st.dataframe(pd.DataFrame(record["outcome_matrix"]), use_container_width=True, hide_index=True)
+        else:
+            st.caption("No adversarial test cases were executed for this workflow.")
+
+    with frameworks:
+        st.subheader("Evidence-supported mappings")
+        if record.get("mappings"):
+            st.dataframe(pd.DataFrame(record["mappings"]), use_container_width=True, hide_index=True)
+            st.caption("Mappings describe observed categories and indicators; they do not claim full framework compliance.")
+        else:
+            empty_state("No justified framework mappings were produced for this assessment.")
+
+    export_left, export_right = st.columns(2)
+    with export_left:
+        st.download_button(
+            "⬇ Download Redacted Assessment Report",
+            data=json.dumps(sanitized_export(record), indent=2),
+            file_name=f"{record['assessment_id']}_report.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+    with export_right:
+        if record.get("replay"):
             st.download_button(
-                "⬇ Download This Report (JSON)",
-                data=json.dumps(r, indent=2),
-                file_name=f"{r['assessment_id']}_report.json",
+                "⬇ Download Reproducibility Package",
+                data=json.dumps(record["replay"], indent=2),
+                file_name=f"{record['assessment_id']}_replay.json",
                 mime="application/json",
-                key=f"report_dl_{r['assessment_id']}",
+                use_container_width=True,
             )
 
 
@@ -863,10 +1069,12 @@ def main():
         dashboard_page()
     elif page == "New Assessment":
         assessment_operations_page()
+    elif page == "Assessment History":
+        render_history_tab()
     elif page == "VAPT Findings":
         vapt_findings_page()
-    elif page == "Attack Paths":
-        attack_paths_page()
+    elif page == "Attack Relationships":
+        attack_relationships_page()
     elif page == "Reports":
         reports_page()
     elif page == "Settings":

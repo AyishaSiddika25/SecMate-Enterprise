@@ -1,0 +1,10 @@
+[project]
+name = "secmate-enterprise-api"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "deepteam @ git+https://github.com/Paramount-Assure/deepteam.git@2fd3445c5bb2070ce09834f66f1622eb914f6f46",
+    # DeepTeam imports this at module load time but the pinned fork does not
+    # currently declare it in its own runtime dependency list.
+    "sentry-sdk>=2.0.0",
+]

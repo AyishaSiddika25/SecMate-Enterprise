@@ -16,6 +16,8 @@ import json
 import os
 from contextlib import contextmanager
 
+from core import intelligence
+
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 DB_PATH = os.path.join(DB_DIR, "secmate.db")
 
@@ -36,6 +38,7 @@ CREATE TABLE IF NOT EXISTS assessments (
     review_status         TEXT DEFAULT 'Pending Review',
     review_notes          TEXT DEFAULT '',
     status                TEXT DEFAULT 'Completed',
+    intelligence_data     TEXT DEFAULT '{}',
     created_at            TEXT NOT NULL
 );
 """
@@ -62,6 +65,9 @@ def init_db():
     try:
         with get_connection() as conn:
             conn.execute(SCHEMA)
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(assessments)").fetchall()}
+            if "intelligence_data" not in columns:
+                conn.execute("ALTER TABLE assessments ADD COLUMN intelligence_data TEXT DEFAULT '{}'")
             conn.commit()
     except sqlite3.Error as e:
         raise DatabaseError(f"Failed to initialize database: {e}") from e
@@ -82,8 +88,8 @@ def save_assessment(record: dict):
                     overall_verdict, test_case_count, defended_count,
                     review_required_count, vapt_indicator_count,
                     test_cases, vapt_findings, evidence_input,
-                    review_status, review_notes, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    review_status, review_notes, status, intelligence_data, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record["assessment_id"],
@@ -101,6 +107,7 @@ def save_assessment(record: dict):
                     record.get("review_status", "Pending Review"),
                     record.get("review_notes", ""),
                     record.get("status", "Completed"),
+                    json.dumps(intelligence.intelligence_payload(record)),
                     record["created_at"],
                 ),
             )
@@ -119,6 +126,12 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
         d["vapt_findings"] = json.loads(d.get("vapt_findings") or "[]")
     except (json.JSONDecodeError, TypeError):
         d["vapt_findings"] = []
+    try:
+        intelligence_data = json.loads(d.pop("intelligence_data", None) or "{}")
+        if isinstance(intelligence_data, dict):
+            d.update(intelligence_data)
+    except (json.JSONDecodeError, TypeError):
+        d.pop("intelligence_data", None)
     return d
 
 

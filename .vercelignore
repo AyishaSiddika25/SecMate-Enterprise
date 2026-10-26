@@ -1,0 +1,16 @@
+.git/
+.npm-cache/
+.vercel-global/
+.vercel-ca.pem
+.streamlit/
+app/
+config/
+data/
+reports/
+tests/
+README.md
+/requirements.txt
+/pyproject.toml
+/uv.lock
+**/__pycache__/
+**/*.pyc
