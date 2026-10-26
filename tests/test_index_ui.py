@@ -172,8 +172,12 @@ class TestIndexUi(unittest.TestCase):
         self.assertIn('<div id="result" aria-live="polite">', INDEX_HTML)
         self.assertNotIn('<pre id="result"', INDEX_HTML)
         self.assertIn("function renderAgentOutput(record)", INDEX_HTML)
-        self.assertIn("Security test results", INDEX_HTML)
+        self.assertIn("Security tests", INDEX_HTML)
         self.assertIn("Assessment progress", INDEX_HTML)
+        self.assertIn('class="agent-loader"', INDEX_HTML)
+        self.assertIn('"loading"', INDEX_HTML)
+        self.assertIn("agent-compact-grid", INDEX_HTML)
+        self.assertNotIn('<details class="agent-section" open>', INDEX_HTML)
         self.assertNotIn("JSON.stringify(output, null, 2)", INDEX_HTML)
 
 
